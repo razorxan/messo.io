@@ -4,5 +4,13 @@
   "description": "Lightweight Signiling Library for Javascript and Typescript",
   "main": "index.js",
   "author": "Emilio Carrino",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "uuid": "^8.0.0",
+    "ws": "^7.3.0"
+  },
+  "devDependencies": {
+    "@types/uuid": "^8.0.0",
+    "@types/ws": "^7.2.4"
+  }
 }
