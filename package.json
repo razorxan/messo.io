@@ -1,0 +1,8 @@
+{
+  "name": "messo.io",
+  "version": "1.0.0",
+  "description": "Lightweight Signiling Library for Javascript and Typescript",
+  "main": "index.js",
+  "author": "Emilio Carrino",
+  "license": "MIT"
+}
