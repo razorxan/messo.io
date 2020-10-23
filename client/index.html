@@ -9,8 +9,154 @@
 
 <body>
     <script>
-        const ws = new WebSocket('ws://localhost/?token=ciao&ciao=nno');
-        console.log(ws);
+
+        class EventEmitter {
+            constructor() {
+                this.callbacks = {}
+            }
+
+            on(event, cb) {
+                if (!this.callbacks[event]) this.callbacks[event] = [];
+                this.callbacks[event].push(cb)
+            }
+
+            emit(event, data, fn = () => { }) {
+                let cbs = this.callbacks[event]
+                if (cbs) {
+                    cbs.forEach(cb => cb(data, fn))
+                }
+            }
+        }
+
+        class Messo extends EventEmitter {
+
+            constructor(url = '/') {
+                super()
+                this.url = url
+                this.ws = new WebSocket(this.url);
+                this.responses = new Map
+                this.initHandlers()
+            }
+
+            initHandlers() {
+                this.ws.onopen = async event => {
+                    this.emit("connection")
+                }
+                this.ws.onmessage = e => {
+                    const { type, id, event, data } = JSON.parse(e.data);
+                    switch (type) {
+                        case 'response':
+                            const response = this.responses.get(id)
+                            response.resolve(data)
+                            this.responses.delete(id)
+                            break
+                        case 'request':
+                            const fn = function (payload) {
+                                this.ws.send(JSON.stringify({
+                                    type: 'response',
+                                    event,
+                                    id,
+                                    data: payload,
+                                }));
+                            }.bind(this)
+                            this.emit.call(this, event, data, fn);
+                            break
+                        case 'message':
+                            this.ws.send(JSON.stringify({
+                                type: 'message',
+                                event,
+                                id,
+                                data
+                            }))
+                            break
+                    }
+                }
+            }
+
+            send(event, data) {
+                const id = getId();
+                this.ws.send(JSON.stringify({
+                    type: 'message',
+                    id,
+                    event,
+                    data,
+                }))
+            }
+
+            request(event, data) {
+                const id = getId()
+                let resolve, reject;
+                const promise = new Promise((res, rej) => {
+                    resolve = res
+                    reject = rej
+                    this.ws.send(JSON.stringify({
+                        type: 'request',
+                        id,
+                        event,
+                        data
+                    }))
+                })
+
+                this.responses.set(id, {
+                    resolve,
+                    reject,
+                });
+                return promise
+            }
+
+        }
+
+
+        let i = 0
+        function getId() {
+            return i++;
+        }
+
+        const messo = new Messo('ws://localhost:3030/prova?token=ciao&ciao=nno')
+
+        messo.on('connection', async () => {
+
+            messo.on('prova', (data, respond) => {
+                respond(data)
+            });
+            const messo2 = new Messo('ws://localhost:3030/prova?token=ciao&ciao=nno')
+            messo2.on('connection', async () => {
+                messo2.on('prova', (data, respond) => {
+                    respond(data)
+                });
+            })
+
+
+
+            // messo.send('test_message', 'questo è un semplice messaggio dal client');
+            // messo.send('test_message', {
+            //     'to': 1
+            // });
+
+            // const result = await messo.request('request_test', { 'ciao': 'sono una request del client' });
+            // console.log(result);
+
+
+
+            // const a = await messo.request('request_test', data => {
+            //     console.log('data');
+            //     console.log(data);
+            // });
+            // console.log(a);
+
+
+
+        })
+
+
+
+
+
+
+
+
+
+
     </script>
 </body>
 

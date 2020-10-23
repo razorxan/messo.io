@@ -5,12 +5,19 @@
   "main": "index.js",
   "author": "Emilio Carrino",
   "license": "MIT",
+  "scripts": {
+    "start:dev": "concurrently --kill-others \"tsc -w\" \"nodemon dist/index.js\"",
+    "start": "tsc && node dist/index.js"
+  },
   "dependencies": {
     "uuid": "^8.0.0",
     "ws": "^7.3.0"
   },
   "devDependencies": {
     "@types/uuid": "^8.0.0",
-    "@types/ws": "^7.2.4"
+    "@types/ws": "^7.2.4",
+    "concurrently": "^5.2.0",
+    "nodemon": "^2.0.4",
+    "typescript": "^3.9.3"
   }
 }
