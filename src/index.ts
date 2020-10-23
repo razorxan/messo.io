@@ -21,13 +21,9 @@ const ms: MessoServer = new MessoServer({
 ms.on('connection', async messo => {
     ms.request(messo.id, 'prova', 'ciaone', (error: any, response: any) => {
         console.log('response con callback', error, response);
-    }).then((response: any) => {
-        console.log('response con promise', response);
     })
     messo.on('socket::add', async () => {
-        ms.request(messo.id, 'prova', 'ciaone', (error: any, response: any) => {
-            console.log('response con callback', error, response);
-        }).then((response: any) => {
+        ms.request(messo.id, 'prova', 'ciaone').then((response: any) => {
             console.log('response con promise', response);
         })
     });

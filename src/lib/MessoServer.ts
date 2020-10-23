@@ -45,7 +45,7 @@ class MessoServer extends EventEmitter {
         this.handleEvents();
     }
 
-    handleEvents() {
+    handleEvents(): void {
         this.httpServer.on('upgrade', async (request: http.IncomingMessage, socket: Socket, head: any) => {
             const requestUrl = request.url ?? ""
             let pathname: string | null = parseUrl(requestUrl).pathname;
@@ -73,10 +73,12 @@ class MessoServer extends EventEmitter {
         });
     }
 
-    request(peerId: string, event: string, data: any, callback?: Function): Promise<any> {
+    request(peerId: string, event: string, data: any): Promise<any>;
+    request(peerId: string, event: string, data: any, callback: Function): Messo;
+    request(peerId: string, event: string, data: any, callback?: Function): Promise<any> | Messo {
         const peer = this.peers.get(peerId);
         if (!peer) throw new Error(`Cannot send request to peer with id ${peerId} does not exist.`);
-        return peer.request(event, data, callback);
+        return callback ? peer.request(event, data, callback) : peer.request(event, data)
     }
 
     join(peerId: string, roomId: string): MessoServer {
@@ -103,7 +105,7 @@ class MessoServer extends EventEmitter {
         return this;
     }
 
-    sendToRoom(roomId: string, event: string, ...args: any) {
+    sendToRoom(roomId: string, event: string, ...args: any): MessoServer {
         const room = this.rooms.get(roomId);
         if (room) {
             room.send(event, ...args);

@@ -105,7 +105,9 @@ class Messo extends EventEmitter {
         return this;
     }
 
-    async request(event: string, data: any, callback?: Function): Promise<any> {
+    request(event: string, data: any): Promise<any>;
+    request(event: string, data: any, callback: Function): Messo;
+    request(event: string, data: any, callback?: Function): Messo | Promise<any> {
         const promises: Promise<any>[] = [];
         for (let [_, socket] of this.sockets) {
             let resolve = () => { }, reject = () => { };
@@ -132,7 +134,7 @@ class Messo extends EventEmitter {
             //FIXME: handle timeout cases when we have to reject the promise after some waiting
             this.responses.set(id, { resolve, reject })
         }
-        return Promise.all(promises);
+        return callback ? this : Promise.all(promises);
     }
 
 }
