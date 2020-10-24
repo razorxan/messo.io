@@ -1,19 +1,19 @@
 import { EventEmitter } from 'events';
 import ws from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import MessoServer from './MessoServer'
+import MessoChannel from './MessoChannel'
 import MessoAck from './interfaces/MessoAck.interface'
 
 class Messo extends EventEmitter {
 
     id: string;
     sockets: Map<string, ws>;
-    server: MessoServer;
+    channel: MessoChannel;
     responses: Map<string, MessoAck>;
 
-    constructor(server: MessoServer, id: string) {
+    constructor(channel: MessoChannel, id: string) {
         super();
-        this.server = server;
+        this.channel = channel;
         this.sockets = new Map<string, ws>();
         this.responses = new Map<string, MessoAck>();
         this.id = id;
@@ -101,7 +101,7 @@ class Messo extends EventEmitter {
     }
 
     join(roomId: string): Messo {
-        this.server.join(this.id, roomId);
+        this.channel.join(this.id, roomId);
         return this;
     }
 

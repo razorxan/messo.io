@@ -112,26 +112,26 @@
             return i++;
         }
 
-        const messo = new Messo('ws://localhost:3030/prova?token=ciao&ciao=nno')
+        const messo = new Messo('ws://localhost:3030/?token=ciao&ciao=nno')
 
         messo.on('connection', async () => {
-
+            console.log("connected");
             messo.on('prova', (data, respond) => {
                 respond(data)
             });
-            const messo2 = new Messo('ws://localhost:3030/prova?token=ciao&ciao=nno')
-            messo2.on('connection', async () => {
-                messo2.on('prova', (data, respond) => {
-                    respond(data)
-                });
-            })
+            // const messo2 = new Messo('ws://localhost:3030/?token=ciao&ciao=nno')
+            // messo2.on('connection', async () => {
+            //     messo2.on('prova', (data, respond) => {
+            //         respond('porco' + data)
+            //     });
+            // })
 
 
 
-            // messo.send('test_message', 'questo è un semplice messaggio dal client');
-            // messo.send('test_message', {
-            //     'to': 1
-            // });
+            messo.send('test_message', 'questo è un semplice messaggio dal client');
+            messo.send('test_message', {
+                'to': 1
+            });
 
             // const result = await messo.request('request_test', { 'ciao': 'sono una request del client' });
             // console.log(result);

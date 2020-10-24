@@ -9,13 +9,7 @@ server.listen(3030, () => {
 });
 
 const ms: MessoServer = new MessoServer({
-    server: server,
-    path: '/prova',
-    authenticate: (query, headers, request) => {
-        return new Promise((resolve, reject) => {
-            resolve({ id: '1' });
-        });
-    }
+    server: server
 });
 
 ms.on('connection', async messo => {
