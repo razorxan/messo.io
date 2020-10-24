@@ -38,10 +38,7 @@ class MessoServer extends EventEmitter {
     }
 
     private handleEvents(): void {
-        this.channel('/').on('connection', (peer: Messo) => {
-            console.log('here');
-            this.emit('connection', peer);
-        });
+
         this.httpServer.on('upgrade', async (request: http.IncomingMessage, socket: Socket, head: any) => {
             const requestUrl = request.url ?? ""
             const channelName: string | null = parseUrl(requestUrl).pathname ?? '/';
@@ -57,6 +54,9 @@ class MessoServer extends EventEmitter {
             channel = new MessoChannel(name);
             this._channels.set(name, channel);
         }
+        channel.on('connection', (peer: Messo) => {
+            this.emit('connection', peer, channel!.name);
+        });
         return channel;
     }
 
