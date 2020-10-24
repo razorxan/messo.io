@@ -1,14 +1,12 @@
-import ws from 'ws';
 import http from 'http';
 import https from 'https';
 import querystring from 'querystring';
 import { parse as parseUrl } from 'url';
 import { EventEmitter } from 'events';
+import { Socket } from 'net';
 
 import Messo from './Messo';
 import MessoChannel from './MessoChannel';
-import MessoRoom from './MessoRoom';
-import { Socket } from 'net';
 
 import MessoServerOptions from './interfaces/MessoServerOptions.interface';
 import MessoPeerAuth from './interfaces/MessoPeerAuth.interface';
@@ -17,29 +15,26 @@ import MessoAck from './interfaces/MessoAck.interface';
 class MessoServer extends EventEmitter {
 
     private _channels: Map<string, MessoChannel>;
-    public httpServer: http.Server | https.Server;
-    // private port: number | undefined;
-    // private host: string | undefined;
-
-    private _authenticate: (query: querystring.ParsedUrlQuery, headers: http.IncomingHttpHeaders, request: http.IncomingMessage) => Promise<MessoPeerAuth>;
+    private _server: http.Server | https.Server;
+    private _port: number;
 
     constructor(options: MessoServerOptions) {
         super();
-        /**
-         * If server is not set in options create one
-         * if path is not specified set it to '/' 
-         */
-        this.httpServer = options.server;
-        // this.port = options.port;
-        // this.host = options.host;
-
+        if (options.server) {
+            this._server = options.server;
+        } else {
+            this._port = options.port || 3000;
+            this._server = new http.Server();
+            this._server.listen(this._port, () => {
+                console.log(`Messo Server Listening on port ${this._port}}`);
+            });
+        }
         this._channels = new Map<string, MessoChannel>();
         this.handleEvents();
     }
 
     private handleEvents(): void {
-
-        this.httpServer.on('upgrade', async (request: http.IncomingMessage, socket: Socket, head: any) => {
+        this._server.on('upgrade', async (request: http.IncomingMessage, socket: Socket, head: any) => {
             const requestUrl = request.url ?? ""
             const channelName: string | null = parseUrl(requestUrl).pathname ?? '/';
             const channel = this.channel(channelName);
@@ -50,17 +45,22 @@ class MessoServer extends EventEmitter {
 
     public channel(name: string): MessoChannel {
         let channel: MessoChannel | undefined = this._channels.get(name);
-        if (!channel) {
+        if (channel === undefined) {
             channel = new MessoChannel(name);
+            channel.on('connection', (peer: Messo) => {
+                this.emit('connection', peer, channel!.name);
+            });
             this._channels.set(name, channel);
         }
-        channel.on('connection', (peer: Messo) => {
-            this.emit('connection', peer, channel!.name);
-        });
+
         return channel;
     }
-
     public chan = this.channel.bind(this);
+
+    public use(authenticate: (query: querystring.ParsedUrlQuery, headers: http.IncomingHttpHeaders, request: http.IncomingMessage) => Promise<MessoPeerAuth>): MessoServer {
+        this.channel('/').use(authenticate);
+        return this;
+    }
 
     public request(peerId: string, event: string, data: any): Promise<any>;
     public request(peerId: string, event: string, data: any, callback: Function): Messo;

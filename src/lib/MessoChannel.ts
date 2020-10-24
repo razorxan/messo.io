@@ -34,7 +34,7 @@ class MessoChannel extends EventEmitter {
         return this._name;
     }
 
-    public use(authenticate: any): MessoChannel {
+    public use(authenticate: (query: querystring.ParsedUrlQuery, headers: http.IncomingHttpHeaders, request: http.IncomingMessage) => Promise<MessoPeerAuth>): MessoChannel {
         this._authenticate = authenticate;
         return this;
     }
@@ -44,23 +44,26 @@ class MessoChannel extends EventEmitter {
         const qs = parseUrl(requestUrl).query;
         let query: querystring.ParsedUrlQuery = {};
         if (qs) query = querystring.parse(qs);
-        const auth = await this._authenticate(query, request.headers, request);
-
-        this._server.handleUpgrade(request, socket, head, (ws: ws) => {
-            let peer: Messo;
-            if (this._peers.has(auth.id)) {
-                peer = this._peers.get(auth.id)!;
-                peer.addSocket(ws);
-            } else {
-                peer = new Messo(this, auth.id);
-                peer.on('close', id => {
-                    this._peers.delete(peer.id);
-                })
-                this._peers.set(peer.id, peer);
-                peer.addSocket(ws);
-                this.emit('connection', peer);
-            }
-        });
+        try {
+            const auth = await this._authenticate(query, request.headers, request);
+            this._server.handleUpgrade(request, socket, head, (ws: ws) => {
+                let peer: Messo;
+                if (this._peers.has(auth.id)) {
+                    peer = this._peers.get(auth.id)!;
+                    peer.addSocket(ws);
+                } else {
+                    peer = new Messo(this, auth.id);
+                    peer.on('close', id => {
+                        this._peers.delete(peer.id);
+                    })
+                    this._peers.set(peer.id, peer);
+                    peer.addSocket(ws);
+                    this.emit('connection', peer);
+                }
+            });
+        } catch (e) {
+            //authentication failer cause this._authentication promise rejected; handle this case
+        }
     }
 
     public peer(id: string): Messo | undefined {

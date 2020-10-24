@@ -8,9 +8,9 @@ class MessoRoom extends EventEmitter {
     private _peerIds: string[];
     private _channel: MessoChannel;
 
-    constructor(server: MessoChannel, id: string) {
+    constructor(channel: MessoChannel, id: string) {
         super();
-        this._channel = server;
+        this._channel = channel;
         this._peerIds = [];
         this._id = id;
     }
@@ -34,6 +34,10 @@ class MessoRoom extends EventEmitter {
             messo.send(event, ...args);
         });
         return this;
+    }
+
+    get id(): string {
+        return this._id;
     }
 
     get size(): Number {

@@ -105,6 +105,11 @@ class Messo extends EventEmitter {
         return this;
     }
 
+    leave(roomId: string): Messo {
+        this.channel.leave(this.id, roomId);
+        return this;
+    }
+
     request(event: string, data: any): Promise<any>;
     request(event: string, data: any, callback: Function): Messo;
     request(event: string, data: any, callback?: Function): Messo | Promise<any> {
