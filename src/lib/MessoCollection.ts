@@ -16,14 +16,22 @@ class MessoCollection {
         this._peers = peers;
     }
 
-    push(peer: Messo): MessoCollection {
+    has(id: string | number): boolean {
+        return this.some((peer: Messo) => peer.id === id.toString());
+    }
+
+    get(id: string | number): Messo | undefined {
+        return this.find((peer: Messo) => peer.id === id.toString());
+    }
+
+    push(peer: Messo): this {
         if (!this.some((p: Messo) => p.id === peer.id)) {
             this._peers.push(peer);
         }
         return this;
     }
 
-    pop(): MessoCollection {
+    pop(): this {
         if (this._peers.length > 0) {
             this._peers.pop();
         }
@@ -38,6 +46,8 @@ class MessoCollection {
         return this;
     }
 
+    delete = this.remove.bind(this);
+
     find(fn: (peer: Messo, index?: number) => boolean): Messo | undefined {
         return this._peers.find(fn);
     }
@@ -50,34 +60,34 @@ class MessoCollection {
         return this._peers.some(fn);
     }
 
-    concat(...args: MessoCollection[]): MessoCollection {
+    concat(...args: MessoCollection[]): this {
         args.forEach((collection: MessoCollection) => {
             this._peers.concat(collection.peers);
         })
         return this;
     }
 
-    each(fn: (peer: Messo, index?: number) => void): MessoCollection {
+    each(fn: (peer: Messo, index?: number) => void): this {
         this._peers.forEach(fn);
         return this;
     }
 
-    map(fn: (peer: Messo, index?: number) => any): MessoCollection {
+    map(fn: (peer: Messo, index?: number) => any): this {
         this._peers = this._peers.map(fn);
         return this;
     }
 
-    filter(fn: (peer: Messo, index?: number) => Messo[]): MessoCollection {
+    filter(fn: (peer: Messo, index?: number) => boolean): this {
         this._peers = this._peers.filter(fn);
         return this;
     }
 
-    sort(fn: (a: Messo, b: Messo) => number): MessoCollection {
+    sort(fn: (a: Messo, b: Messo) => number): this {
         this._peers.sort(fn);
         return this;
     }
 
-    send(event: string, data: any): MessoCollection {
+    send(event: string, data: any): this {
         this.each((peer: Messo) => {
             peer.send(event, data);
         })
@@ -88,22 +98,22 @@ class MessoCollection {
         return this._peers.map((peer: Messo) => peer.request(event, data));
     }
 
-    join(roomId: string) {
+    join(roomId: string): this {
         this._peers.forEach((peer: Messo) => {
             peer.join(roomId);
         });
         return this;
     }
 
-    leave(roomId: string) {
+    leave(roomId: string): this {
         this._peers.forEach((peer: Messo) => {
             peer.leave(roomId);
         });
         return this;
     }
 
-    disconnect() {
-
+    disconnect(): this {
+        return this;
     }
 
 }

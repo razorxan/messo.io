@@ -57,7 +57,7 @@ class MessoServer extends EventEmitter {
     }
     public chan = this.channel.bind(this);
 
-    public use(authenticate: (query: querystring.ParsedUrlQuery, headers: http.IncomingHttpHeaders, request: http.IncomingMessage) => Promise<MessoPeerAuth>): MessoServer {
+    public use(authenticate: (query: querystring.ParsedUrlQuery, headers: http.IncomingHttpHeaders, request: http.IncomingMessage) => Promise<MessoPeerAuth>): this {
         this.channel('/').use(authenticate);
         return this;
     }
@@ -68,22 +68,22 @@ class MessoServer extends EventEmitter {
         return this.channel('/').request(peerId, event, data, callback!);
     }
 
-    public join(peerId: string, roomId: string): MessoServer {
+    public join(peerId: string, roomId: string): this {
         this.channel('/').join(peerId, roomId);
         return this;
     }
 
-    public leave(peerId: string, roomId: string): MessoServer {
+    public leave(peerId: string, roomId: string): this {
         this.channel('/').leave(peerId, roomId);
         return this;
     }
 
-    public send(peerId: string, event: string, data: any, type: string = 'message'): MessoServer {
+    public send(peerId: string, event: string, data: any, type: string = 'message'): this {
         this.channel('/').send(event, data, type);
         return this;
     }
 
-    public sendToRoom(roomId: string, event: string, ...args: any): MessoServer {
+    public sendToRoom(roomId: string, event: string, ...args: any): this {
         this.channel('/').sendToRoom(roomId, event, ...args);
         return this
     }

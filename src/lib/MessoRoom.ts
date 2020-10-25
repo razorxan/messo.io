@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import MessoChannel from './MessoChannel';
+import MessoCollection from './MessoCollection';
 import Messo from './Messo';
 
 class MessoRoom extends EventEmitter {
@@ -15,36 +16,42 @@ class MessoRoom extends EventEmitter {
         this._id = id;
     }
 
-    addPeerId(peerId: string): MessoRoom {
+    addPeerId(peerId: string): this {
         if (this._peerIds.includes(peerId)) {
             this._peerIds.push(peerId);
         }
         return this;
     }
 
-    removePeerId(peerId: string): MessoRoom {
+    removePeerId(peerId: string): this {
         if (this._peerIds.includes(peerId)) {
             this._peerIds.splice(this._peerIds.indexOf(peerId), 1);
         }
         return this;
     }
 
-    send(event: string, ...args: any) {
-        this._channel.getPeers(this._peerIds).forEach((messo: Messo) => {
-            messo.send(event, ...args);
+    send(event: string, ...args: any): this {
+        this.peers.each((peer: Messo) => {
+            peer.send(event, ...args);
         });
         return this;
+    }
+
+    get peers(): MessoCollection {
+        return this._channel.peers.filter((peer: Messo): boolean => {
+            return this._peerIds.includes(peer.id);
+        });
     }
 
     get id(): string {
         return this._id;
     }
 
-    get size(): Number {
+    get size(): number {
         return this._peerIds.length;
     }
 
-    get empty(): Boolean {
+    get empty(): boolean {
         return this.size === 0;
     }
 

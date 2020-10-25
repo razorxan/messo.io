@@ -74,7 +74,7 @@ class Messo extends EventEmitter {
         return id;
     }
 
-    removeAllSockets(): Messo {
+    removeAllSockets(): this {
         this.sockets.clear();
         this.emit('socket:empty');
         this.emit('close');
@@ -89,7 +89,7 @@ class Messo extends EventEmitter {
         return [...this.sockets].map(([_, socket]: [string, ws]) => socket);
     }
 
-    send(event: string, ...args: any): Messo {
+    send(event: string, ...args: any): this {
         this.sockets.forEach(socket => {
             socket.send(JSON.stringify({
                 type: 'message',
@@ -100,19 +100,19 @@ class Messo extends EventEmitter {
         return this;
     }
 
-    join(roomId: string): Messo {
+    join(roomId: string): this {
         this.channel.join(this.id, roomId);
         return this;
     }
 
-    leave(roomId: string): Messo {
+    leave(roomId: string): this {
         this.channel.leave(this.id, roomId);
         return this;
     }
 
     request(event: string, data: any): Promise<any>;
-    request(event: string, data: any, callback: Function): Messo;
-    request(event: string, data: any, callback?: Function): Messo | Promise<any> {
+    request(event: string, data: any, callback: Function): this;
+    request(event: string, data: any, callback?: Function): this | Promise<any> {
         const promises: Promise<any>[] = [];
         for (let [_, socket] of this.sockets) {
             let resolve = () => { }, reject = () => { };
