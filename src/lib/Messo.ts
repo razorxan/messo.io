@@ -4,6 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 import MessoChannel from './MessoChannel'
 import MessoAck from './interfaces/MessoAck.interface'
 
+
+//TODO: refactor this with MessoSocket and fix private members, getters and setters
+//TODO: impelement aks for type message
 class Messo extends EventEmitter {
 
     id: string;

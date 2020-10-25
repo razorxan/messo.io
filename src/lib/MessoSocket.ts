@@ -20,7 +20,7 @@ class MessoSocket {
     public set(key: any): void;
     public set(key?: string, value?: any) {
         if (typeof key === 'string' && value !== undefined) {
-            this.meta[key] = value;
+            this._meta[key] = value;
         } else if (key !== undefined) {
             this._meta = key;
         }
@@ -39,3 +39,5 @@ class MessoSocket {
     }
 
 }
+
+export default MessoSocket;
