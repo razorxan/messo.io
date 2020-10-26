@@ -5,20 +5,23 @@ import http from 'http';
 import { Socket } from 'net';
 
 import ws from 'ws';
+import { v4 as uuidv4, v4 } from 'uuid';
 
 import MessoRoom from './MessoRoom';
-import Messo from './Messo';
+import MessoPeer from './MessoPeer';
 
 import MessoPeerAuth from './interfaces/MessoPeerAuth.interface';
 import MessoCollection from './MessoCollection';
 
+
+type MessoAuthenticationMiddlware = (query: querystring.ParsedUrlQuery, headers: http.IncomingHttpHeaders, request: http.IncomingMessage) => Promise<MessoPeerAuth>;
 class MessoChannel extends EventEmitter {
 
     private _server: ws.Server;
     private _name: string;
     private _peers: MessoCollection;
     private _rooms: Map<string, MessoRoom>;
-    private _authenticate: (query: querystring.ParsedUrlQuery, headers: http.IncomingHttpHeaders, request: http.IncomingMessage) => Promise<MessoPeerAuth>;
+    private _authenticate: MessoAuthenticationMiddlware;
 
     constructor(name: string = '/') {
         super();
@@ -26,9 +29,7 @@ class MessoChannel extends EventEmitter {
         this._name = name;
         this._peers = new MessoCollection();
         this._rooms = new Map<string, MessoRoom>();
-        this._authenticate = (query: querystring.ParsedUrlQuery, headers: http.IncomingHttpHeaders, request: http.IncomingMessage) => {
-            return Promise.resolve({ id: '1' });
-        }
+        this._authenticate = async () => ({ id: uuidv4(), meta: {} });
     }
 
     get name(): string {
@@ -46,15 +47,14 @@ class MessoChannel extends EventEmitter {
         let query: querystring.ParsedUrlQuery = {};
         if (qs) query = querystring.parse(qs);
         try {
-            const auth = await this._authenticate(query, request.headers, request);
+            const { id, meta } = await this._authenticate(query, request.headers, request);
             this._server.handleUpgrade(request, socket, head, (ws: ws) => {
-                let peer: Messo;
-
-                if (this._peers.has(auth.id)) {
-                    peer = this._peers.get(auth.id)!;
+                let peer: MessoPeer;
+                if (this._peers.has(id)) {
+                    peer = this._peers.get(id)!;
                     peer.addSocket(ws);
                 } else {
-                    peer = new Messo(this, auth.id);
+                    peer = new MessoPeer(this, id, meta);
                     peer.on('close', id => {
                         this._peers.delete(peer.id);
                     })
@@ -64,17 +64,18 @@ class MessoChannel extends EventEmitter {
                 }
             });
         } catch (e) {
-            //authentication failed cause this._authentication promise rejected; handle this case
+            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+            socket.destroy();
         }
     }
 
-    public peer(id: string): Messo | undefined {
+    public peer(id: string): MessoPeer | undefined {
         return this._peers.get(id);
     }
 
     request(peerId: string, event: string, data: any): Promise<any>;
-    request(peerId: string, event: string, data: any, callback: Function): Messo;
-    request(peerId: string, event: string, data: any, callback?: Function): Promise<any> | Messo {
+    request(peerId: string, event: string, data: any, callback: Function): MessoPeer;
+    request(peerId: string, event: string, data: any, callback?: Function): Promise<any> | MessoPeer {
         const peer = this._peers.get(peerId);
         if (!peer) throw new Error(`Cannot send request to peer with id ${peerId} does not exist.`);
         return callback ? peer.request(event, data, callback) : peer.request(event, data)
@@ -92,7 +93,6 @@ class MessoChannel extends EventEmitter {
         if (!this._rooms.has(roomId)) throw new Error(`Cannot leave room with id ${roomId}. The room does not exist`);
         const room: MessoRoom = this._rooms.get(roomId)!;
         room.removePeerId(peerId);
-        //TODO: Let's think about it
         if (room.empty) this._rooms.delete(roomId);
         return this;
     }

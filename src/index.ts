@@ -1,4 +1,5 @@
 import http from 'http';
+import { ParsedUrlQuery } from 'querystring';
 
 import MessoServer from './lib/MessoServer';
 
@@ -11,6 +12,10 @@ server.listen(3030, () => {
 const ms: MessoServer = new MessoServer({
     server: server
 });
+
+ms.use(async (query: ParsedUrlQuery, headers: http.IncomingHttpHeaders, request: http.IncomingMessage) => {
+    return { id: 'a', ciao: 'ciao' };
+})
 
 ms.on('connection', async messo => {
     ms.request(messo.id, 'prova', 'ciaone', (error: any, response: any) => {

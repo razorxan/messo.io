@@ -5,7 +5,7 @@ import { parse as parseUrl } from 'url';
 import { EventEmitter } from 'events';
 import { Socket } from 'net';
 
-import Messo from './Messo';
+import MessoPeer from './MessoPeer';
 import MessoChannel from './MessoChannel';
 
 import MessoServerOptions from './interfaces/MessoServerOptions.interface';
@@ -47,7 +47,7 @@ class MessoServer extends EventEmitter {
         let channel: MessoChannel | undefined = this._channels.get(name);
         if (channel === undefined) {
             channel = new MessoChannel(name);
-            channel.on('connection', (peer: Messo) => {
+            channel.on('connection', (peer: MessoPeer) => {
                 this.emit('connection', peer, channel!.name);
             });
             this._channels.set(name, channel);
@@ -63,8 +63,8 @@ class MessoServer extends EventEmitter {
     }
 
     public request(peerId: string, event: string, data: any): Promise<any>;
-    public request(peerId: string, event: string, data: any, callback: Function): Messo;
-    public request(peerId: string, event: string, data: any, callback?: Function): Promise<any> | Messo {
+    public request(peerId: string, event: string, data: any, callback: Function): MessoPeer;
+    public request(peerId: string, event: string, data: any, callback?: Function): Promise<any> | MessoPeer {
         return this.channel('/').request(peerId, event, data, callback!);
     }
 

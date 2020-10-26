@@ -1,4 +1,7 @@
 export default interface MessoPeerAuth {
+    /** Unique identifier of the peer */
     id: string;
-    [key: string]: any;
+    meta?: {
+        [key: string]: any;
+    }
 };

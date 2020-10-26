@@ -1,31 +1,31 @@
-import Messo from './Messo';
+import MessoPeer from './MessoPeer';
 
 class MessoCollection {
 
-    private _peers: Messo[];
+    private _peers: MessoPeer[];
 
-    constructor(peers: Messo[] = []) {
+    constructor(peers: MessoPeer[] = []) {
         this._peers = peers;
     }
 
-    get peers(): Messo[] {
+    get peers(): MessoPeer[] {
         return this._peers;
     }
 
-    set peers(peers: Messo[]) {
+    set peers(peers: MessoPeer[]) {
         this._peers = peers;
     }
 
     has(id: string | number): boolean {
-        return this.some((peer: Messo) => peer.id === id.toString());
+        return this.some((peer: MessoPeer) => peer.id === id.toString());
     }
 
-    get(id: string | number): Messo | undefined {
-        return this.find((peer: Messo) => peer.id === id.toString());
+    get(id: string | number): MessoPeer | undefined {
+        return this.find((peer: MessoPeer) => peer.id === id.toString());
     }
 
-    push(peer: Messo): this {
-        if (!this.some((p: Messo) => p.id === peer.id)) {
+    push(peer: MessoPeer): this {
+        if (!this.some((p: MessoPeer) => p.id === peer.id)) {
             this._peers.push(peer);
         }
         return this;
@@ -39,7 +39,7 @@ class MessoCollection {
     }
 
     remove(id: string | number): MessoCollection {
-        const index = this._peers.findIndex((peer: Messo) => peer.id === id.toString());
+        const index = this._peers.findIndex((peer: MessoPeer) => peer.id === id.toString());
         if (index > -1) {
             this._peers.splice(index, 1);
         }
@@ -48,15 +48,15 @@ class MessoCollection {
 
     delete = this.remove.bind(this);
 
-    find(fn: (peer: Messo, index?: number) => boolean): Messo | undefined {
+    find(fn: (peer: MessoPeer, index?: number) => boolean): MessoPeer | undefined {
         return this._peers.find(fn);
     }
 
-    findIndex(fn: (peer: Messo, index?: number) => boolean): number {
+    findIndex(fn: (peer: MessoPeer, index?: number) => boolean): number {
         return this._peers.findIndex(fn);
     }
 
-    some(fn: (peer: Messo) => boolean): boolean {
+    some(fn: (peer: MessoPeer) => boolean): boolean {
         return this._peers.some(fn);
     }
 
@@ -67,46 +67,46 @@ class MessoCollection {
         return this;
     }
 
-    each(fn: (peer: Messo, index?: number) => void): this {
+    each(fn: (peer: MessoPeer, index?: number) => void): this {
         this._peers.forEach(fn);
         return this;
     }
 
-    map(fn: (peer: Messo, index?: number) => any): this {
+    map(fn: (peer: MessoPeer, index?: number) => any): this {
         this._peers = this._peers.map(fn);
         return this;
     }
 
-    filter(fn: (peer: Messo, index?: number) => boolean): this {
+    filter(fn: (peer: MessoPeer, index?: number) => boolean): this {
         this._peers = this._peers.filter(fn);
         return this;
     }
 
-    sort(fn: (a: Messo, b: Messo) => number): this {
+    sort(fn: (a: MessoPeer, b: MessoPeer) => number): this {
         this._peers.sort(fn);
         return this;
     }
 
     send(event: string, data: any): this {
-        this.each((peer: Messo) => {
+        this.each((peer: MessoPeer) => {
             peer.send(event, data);
         })
         return this;
     }
 
     request(event: string, data: any): Promise<any>[] {
-        return this._peers.map((peer: Messo) => peer.request(event, data));
+        return this._peers.map((peer: MessoPeer) => peer.request(event, data));
     }
 
     join(roomId: string): this {
-        this._peers.forEach((peer: Messo) => {
+        this._peers.forEach((peer: MessoPeer) => {
             peer.join(roomId);
         });
         return this;
     }
 
     leave(roomId: string): this {
-        this._peers.forEach((peer: Messo) => {
+        this._peers.forEach((peer: MessoPeer) => {
             peer.leave(roomId);
         });
         return this;

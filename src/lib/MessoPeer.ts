@@ -1,31 +1,38 @@
 import { EventEmitter } from 'events';
 import ws from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import MessoChannel from './MessoChannel'
-import MessoAck from './interfaces/MessoAck.interface'
+import MessoChannel from './MessoChannel';
+import MessoAck from './interfaces/MessoAck.interface';
+import MessoMeta from './interfaces/MessoMeta.interface';
 
 
 //TODO: refactor this with MessoSocket and fix private members, getters and setters
 //TODO: impelement aks for type message
-class Messo extends EventEmitter {
+class MessoPeer extends EventEmitter {
 
-    id: string;
-    sockets: Map<string, ws>;
-    channel: MessoChannel;
-    responses: Map<string, MessoAck>;
+    _id: string;
+    _sockets: Map<string, ws>;
+    _channel: MessoChannel;
+    _responses: Map<string, MessoAck>;
+    _meta: MessoMeta;
 
-    constructor(channel: MessoChannel, id: string) {
+    constructor(channel: MessoChannel, id: string, meta: MessoMeta = {}) {
         super();
-        this.channel = channel;
-        this.sockets = new Map<string, ws>();
-        this.responses = new Map<string, MessoAck>();
-        this.id = id;
+        this._channel = channel;
+        this._sockets = new Map<string, ws>();
+        this._responses = new Map<string, MessoAck>();
+        this._id = id;
+        this._meta = meta;
+    }
+
+    get id(): string {
+        return this._id;
     }
 
     addSocket(socket: ws): this {
         const id: string = uuidv4();
         this.initSocketHandler(socket, id);
-        this.sockets.set(id, socket);
+        this._sockets.set(id, socket);
         this.emit('socket::add', socket);
         return this;
     }
@@ -51,10 +58,10 @@ class Messo extends EventEmitter {
                         this.emit(event, data, fn);
                         break;
                     case 'response':
-                        const response = this.responses.get(id);
+                        const response = this._responses.get(id);
                         if (!response) throw new Error('Could not find an response object suitable for the request.');
                         response.resolve(data);
-                        this.responses.delete(id);
+                        this._responses.delete(id);
                         break;
                     case 'message':
                         this.emit(event, data);
@@ -67,10 +74,10 @@ class Messo extends EventEmitter {
     }
 
     removeSocket(id: string): string {
-        if (!this.sockets.has(id)) throw new Error(`Could not find socket with id ${id}`);
-        this.sockets.delete(id);
+        if (!this._sockets.has(id)) throw new Error(`Could not find socket with id ${id}`);
+        this._sockets.delete(id);
         this.emit('socket::remove', id);
-        if (this.sockets.size < 1) {
+        if (this._sockets.size < 1) {
             this.emit('socket:empty');
             this.emit('close');
         }
@@ -78,22 +85,22 @@ class Messo extends EventEmitter {
     }
 
     removeAllSockets(): this {
-        this.sockets.clear();
+        this._sockets.clear();
         this.emit('socket:empty');
         this.emit('close');
         return this;
     }
 
     getSocket(id: string): ws | undefined {
-        return this.sockets.get(id);
+        return this._sockets.get(id);
     }
 
     getSockets(): ws[] {
-        return [...this.sockets].map(([_, socket]: [string, ws]) => socket);
+        return [...this._sockets].map(([_, socket]: [string, ws]) => socket);
     }
 
     send(event: string, ...args: any): this {
-        this.sockets.forEach(socket => {
+        this._sockets.forEach(socket => {
             socket.send(JSON.stringify({
                 type: 'message',
                 event,
@@ -104,12 +111,12 @@ class Messo extends EventEmitter {
     }
 
     join(roomId: string): this {
-        this.channel.join(this.id, roomId);
+        this._channel.join(this._id, roomId);
         return this;
     }
 
     leave(roomId: string): this {
-        this.channel.leave(this.id, roomId);
+        this._channel.leave(this._id, roomId);
         return this;
     }
 
@@ -117,7 +124,7 @@ class Messo extends EventEmitter {
     request(event: string, data: any, callback: Function): this;
     request(event: string, data: any, callback?: Function): this | Promise<any> {
         const promises: Promise<any>[] = [];
-        for (let [_, socket] of this.sockets) {
+        for (let [_, socket] of this._sockets) {
             let resolve = () => { }, reject = () => { };
             let id = uuidv4();
             promises.push(new Promise((res, rej) => {
@@ -140,11 +147,11 @@ class Messo extends EventEmitter {
                 });
             }
             //FIXME: handle timeout cases when we have to reject the promise after some waiting
-            this.responses.set(id, { resolve, reject })
+            this._responses.set(id, { resolve, reject })
         }
         return callback ? this : Promise.all(promises);
     }
 
 }
 
-export default Messo;
+export default MessoPeer;
