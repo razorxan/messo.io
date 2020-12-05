@@ -9,8 +9,7 @@ import MessoPeer from './MessoPeer';
 import MessoChannel from './MessoChannel';
 
 import MessoServerOptions from './interfaces/MessoServerOptions.interface';
-import MessoPeerAuth from './interfaces/MessoPeerAuth.interface';
-import MessoAck from './interfaces/MessoAck.interface';
+import { MessoAuthenticationMiddleware } from './types';
 
 class MessoServer extends EventEmitter {
 
@@ -55,17 +54,17 @@ class MessoServer extends EventEmitter {
 
         return channel;
     }
+
     public chan = this.channel.bind(this);
 
-    public use(authenticate: (query: querystring.ParsedUrlQuery, headers: http.IncomingHttpHeaders, request: http.IncomingMessage) => Promise<MessoPeerAuth>): this {
+    public use(authenticate: MessoAuthenticationMiddleware): this {
         this.channel('/').use(authenticate);
         return this;
     }
 
-    public request(peerId: string, event: string, data: any): Promise<any>;
-    public request(peerId: string, event: string, data: any, callback: Function): MessoPeer;
-    public request(peerId: string, event: string, data: any, callback?: Function): Promise<any> | MessoPeer {
-        return this.channel('/').request(peerId, event, data, callback!);
+
+    public request(peerId: string, event: string, ...data: any[]): Promise<any> {
+        return this.channel('/').request(peerId, event, ...data);
     }
 
     public join(peerId: string, roomId: string): this {

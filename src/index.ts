@@ -1,6 +1,7 @@
 import http from 'http';
 import { ParsedUrlQuery } from 'querystring';
-
+import MessoPeer from './lib/MessoPeer';
+import MessoRequest from './lib/MessoRequest';
 import MessoServer from './lib/MessoServer';
 
 const server = new http.Server()
@@ -12,19 +13,27 @@ server.listen(3030, () => {
 const ms: MessoServer = new MessoServer({
     server: server
 });
+type BelongsToPeer = (peer: MessoPeer) => boolean;
+ms.use(async (query: ParsedUrlQuery, headers: http.IncomingHttpHeaders, cookies: any) => {
+    return {
+        meta: { qualcosa: 'a' },
+        peer: (peer: MessoPeer) => peer.get('qualcosa') === 'a'
+    };
+});
 
-ms.use(async (query: ParsedUrlQuery, headers: http.IncomingHttpHeaders, request: http.IncomingMessage) => {
-    return { id: 'a', ciao: 'ciao' };
-})
+ms.on('connection', async (messo: MessoPeer) => {
+    ms.request(messo.id, 'prova', 'ciaone', 'second').then((response: any) => {
+        console.log('response after promise', response);
+    }).catch(error => {
+        console.log(error);
+    });
+    messo.on("ciccio", (a: any, b: any, c: any) => {
+        console.log(a, b, c);
+    });
 
-ms.on('connection', async messo => {
-    ms.request(messo.id, 'prova', 'ciaone', (error: any, response: any) => {
-        console.log('response con callback', error, response);
-    })
-    messo.on('socket::add', async () => {
-        ms.request(messo.id, 'prova', 'ciaone').then((response: any) => {
-            console.log('response con promise', response);
-        })
+    messo.on('request_test', (request: MessoRequest) => {
+        console.log('request_test', request.body());
+        request.respond('dio');
     });
 
     // console.log(messo.id, 'connected');
