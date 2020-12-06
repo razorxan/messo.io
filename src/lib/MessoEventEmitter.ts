@@ -1,25 +1,41 @@
-import { v4 as uuidv4 } from 'uuid';
+import MessoRequest from './MessoRequest';
+import { MessoEventHandler } from './types'
 
-type MessoEventHandler = (...data: any) => any;
 
 interface MessoListener {
-    type: string;
+    type: 'request' | 'message';
     event: string;
     handler: MessoEventHandler;
 }
 
 
+interface MessoMessage {
+    [key: string]: any
+}
+
 class MessoEventEmitter {
 
-    private _listeners: Map<string, MessoListener[]>
+    private _listeners: Map<string, MessoListener[]>;
 
     constructor() {
         this._listeners = new Map();
     }
 
-    public on(event: string, handler: MessoEventHandler): this {
-        const listener = {
-            id: uuidv4(),
+    public onRequest(event: string, handler: MessoEventHandler): this {
+        const listener: MessoListener = {
+            type: 'request',
+            event,
+            handler
+        };
+        if (!this._listeners.has(event)) {
+            this._listeners.set(event, []);
+        }
+        this._listeners.get(event)!.push(listener);
+        return this;
+    }
+
+    public onMessage(event: string, handler: MessoEventHandler): this {
+        const listener: MessoListener = {
             type: 'message',
             event,
             handler
@@ -29,12 +45,15 @@ class MessoEventEmitter {
         }
         this._listeners.get(event)!.push(listener);
         return this;
+    }
 
+    public on(event: string, handler: MessoEventHandler): this {
+        return this.onMessage(event, handler);
     }
 
     public off(event?: string, handler?: MessoEventHandler): this {
         if (!event) {
-            this._listeners.forEach((_: MessoListener[], event: string,) => {
+            this._listeners.forEach((_: MessoListener[], event: string) => {
                 this._listeners.delete(event);
             });
         } else if (handler) {
@@ -50,8 +69,24 @@ class MessoEventEmitter {
         return this;
     }
 
-    emit(event: string, payload: any) {
+    public emitRequest(event: string, request: MessoRequest) {
+        const listeners = this._listeners.get(event);
+        if (listeners) {
+            listeners
+                .filter((listener: MessoListener) => listener.type === 'request')
+                .forEach((listener: MessoListener) => listener.handler(request))
+        }
+    }
 
+    public emitMessage(event: string, message: MessoMessage) {
+        const listeners = this._listeners.get(event);
+        if (listeners) {
+            listeners
+                .filter((listener: MessoListener) => listener.type === 'message')
+                .forEach((listener: MessoListener) => listener.handler(message))
+        }
     }
 
 }
+
+export default MessoEventEmitter;

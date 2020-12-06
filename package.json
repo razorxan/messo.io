@@ -6,8 +6,8 @@
   "author": "Emilio Carrino",
   "license": "MIT",
   "scripts": {
-    "start:dev": "concurrently --kill-others \"tsc -w\" \"nodemon dist/index.js\"",
-    "start": "tsc && node dist/index.js"
+    "start:dev": "concurrently --kill-others \"tsc -w\" \"nodemon dist/app.js\"",
+    "start": "tsc && node dist/app.js"
   },
   "dependencies": {
     "uuid": "^8.0.0",

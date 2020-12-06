@@ -1,17 +1,16 @@
+
+import http from 'http';
+import { Socket } from 'net';
 import { EventEmitter } from 'events';
 import { parse as parseUrl } from 'url';
 import querystring from 'querystring';
-import http from 'http';
-import { Socket } from 'net';
-
 import ws from 'ws';
-
 import MessoRoom from './MessoRoom';
 import MessoPeer from './MessoPeer';
-
 import MessoCollection from './MessoCollection';
-
 import { MessoAuthenticationMiddleware } from './types';
+import MessoRequest from './MessoRequest';
+import MessoAck from './interfaces/IMessoAck.interface';
 
 class MessoChannel extends EventEmitter {
 
@@ -84,10 +83,16 @@ class MessoChannel extends EventEmitter {
     }
 
 
-    request(peerId: string, event: string, ...data: any[]): Promise<any> {
+    request(peerId: string, event: string, body: any): Promise<MessoRequest> {
         const peer = this._peers.get(peerId);
         if (!peer) throw new Error(`Cannot send request to peer with id ${peerId} does not exist.`);
-        return peer.request(event, ...data)
+        return peer.request(event, body)
+    }
+
+    send(peerId: string, event: string, data: any): Promise<MessoAck> {
+        const peer = this._peers.get(peerId);
+        if (!peer) throw new Error(`Cannot send to peer with id ${peerId} does not exist.`);
+        return peer.send(event, data);
     }
 
     join(peerId: string, roomId: string): this {
@@ -103,13 +108,6 @@ class MessoChannel extends EventEmitter {
         const room: MessoRoom = this._rooms.get(roomId)!;
         room.removePeerId(peerId);
         if (room.empty) this._rooms.delete(roomId);
-        return this;
-    }
-
-    send(peerId: string, event: string, data: any, type: string = 'message'): this {
-        const peer = this._peers.get(peerId);
-        if (!peer) throw new Error(`Cannot send to peer with id ${peerId} does not exist.`);
-        peer.send(event, data);
         return this;
     }
 

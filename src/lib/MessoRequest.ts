@@ -1,36 +1,14 @@
 import ws from 'ws';
+import MessoMessage from './MessoMessage'
+import MessoBody from './interfaces/IMessoBody.interface';
 
-interface MessoRequestBody {
-    [propName: string]: any;
-}
+class MessoRequest extends MessoMessage {
 
-class MessoRequest {
-
-    private _id: string;
-    private _event: string;
-    private _body: any;
     private _socket: ws;
 
-    constructor(id: string, event: string, body: MessoRequestBody, socket: ws) {
-        this._id = id;
-        this._event = event;
-        this._body = body;
+    constructor(id: string, event: string, body: MessoBody, socket: ws) {
+        super(id, event, body);
         this._socket = socket;
-    }
-
-    public body(key?: string) {
-        if (key) {
-            return this._body[key];
-        }
-        return this._body;
-    }
-
-    get event(): string {
-        return this._event;
-    }
-
-    get id(): string {
-        return this._id;
     }
 
     public respond(payload: any) {

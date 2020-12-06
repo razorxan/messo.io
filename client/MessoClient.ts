@@ -8,7 +8,7 @@ const uuidv4 = () => {
     return uuid;
 }
 
-type EventEmitterCallback = (...args: any[]) => {};
+type EventEmitterCallback = (body: any) => {};
 
 class EventEmitter {
 
@@ -44,16 +44,62 @@ class EventEmitter {
         return this;
     }
 
-    emit(event: string, ...args: any[]): this {
+    emit(event: string, data?: any): this {
         const callbacks: EventEmitterCallback[] = this.callbacks.get(event);
         if (callbacks) {
             callbacks.forEach((callback: EventEmitterCallback) => {
-                callback(...args);
+                callback(data);
             });
         }
         return this;
     }
 }
+
+interface MessoBody {
+    [propName: string]: any;
+}
+class MessoMessage {
+
+    protected _id: string;
+    protected _event: string;
+    protected _body: any;
+
+
+    constructor(id: string, event: string, body: MessoBody) {
+        this._id = id;
+        this._event = event;
+        this._body = body;
+    }
+
+    public body(key?: string) {
+        if (key) {
+            return this._body[key];
+        }
+        return this._body;
+    }
+
+}
+class MessoRequest extends MessoMessage {
+
+    private _socket: WebSocket;
+
+    constructor(id: string, event: string, body: MessoBody, socket: WebSocket) {
+        super(id, event, body);
+        this._socket = socket;
+    }
+
+    public respond(payload: any) {
+        this._socket.send(JSON.stringify({
+            type: "response",
+            id: this._id,
+            event: this._event,
+            data: payload
+        }));
+    }
+
+
+}
+
 
 class MessoClient extends EventEmitter {
     private url: string;
@@ -91,23 +137,16 @@ class MessoClient extends EventEmitter {
 
     private handleMessage(event: string, id: string, data: any) {
         this.ws.send(JSON.stringify({
-            type: 'message',
-            event,
+            type: 'ack',
             id,
-            data
+            event,
+            data: +new Date,
         }));
+        this.emit.apply(this, [event, data]);
     }
 
     private handleRequest(id: string, event: string, data: any) {
-        const fn = function (payload) {
-            this.ws.send(JSON.stringify({
-                type: 'response',
-                event,
-                id,
-                data: payload,
-            }));
-        }.bind(this);
-        this.emit.apply(this, [event, ...data, fn]);
+        this.emit(event, new MessoRequest(id, event, data, this.ws));
     }
 
     private handlResponse(id: string, data: any) {
@@ -116,17 +155,17 @@ class MessoClient extends EventEmitter {
         this.responses.delete(id);
     }
 
-    public send(event: string, ...args: any) {
+    public send(event: string, body: any) {
         const id: string = uuidv4();
         this.ws.send(JSON.stringify({
             type: 'message',
             id,
             event,
-            data: args,
+            data: body,
         }));
     }
 
-    request(event: string, ...args) {
+    request(event: string, body?: any) {
         const id: string = uuidv4();
         let resolve: any, reject: any;
         const promise = new Promise((res, rej) => {
@@ -136,7 +175,7 @@ class MessoClient extends EventEmitter {
                 type: 'request',
                 id,
                 event,
-                data: args
+                data: body
             }));
         });
         this.responses.set(id, {

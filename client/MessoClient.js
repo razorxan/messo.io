@@ -11,13 +11,6 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var __spreadArrays = (this && this.__spreadArrays) || function () {
-    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-    for (var r = Array(s), k = 0, i = 0; i < il; i++)
-        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-            r[k] = a[j];
-    return r;
-};
 var uuidv4 = function () {
     var dt = new Date().getTime();
     var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -59,21 +52,48 @@ var EventEmitter = /** @class */ (function () {
         }
         return this;
     };
-    EventEmitter.prototype.emit = function (event) {
-        var args = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            args[_i - 1] = arguments[_i];
-        }
+    EventEmitter.prototype.emit = function (event, data) {
         var callbacks = this.callbacks.get(event);
         if (callbacks) {
             callbacks.forEach(function (callback) {
-                callback.apply(void 0, args);
+                callback(data);
             });
         }
         return this;
     };
     return EventEmitter;
 }());
+var MessoMessage = /** @class */ (function () {
+    function MessoMessage(id, event, body) {
+        this._id = id;
+        this._event = event;
+        this._body = body;
+    }
+    MessoMessage.prototype.body = function (key) {
+        if (key) {
+            return this._body[key];
+        }
+        return this._body;
+    };
+    return MessoMessage;
+}());
+var MessoRequest = /** @class */ (function (_super) {
+    __extends(MessoRequest, _super);
+    function MessoRequest(id, event, body, socket) {
+        var _this = _super.call(this, id, event, body) || this;
+        _this._socket = socket;
+        return _this;
+    }
+    MessoRequest.prototype.respond = function (payload) {
+        this._socket.send(JSON.stringify({
+            type: "response",
+            id: this._id,
+            event: this._event,
+            data: payload
+        }));
+    };
+    return MessoRequest;
+}(MessoMessage));
 var MessoClient = /** @class */ (function (_super) {
     __extends(MessoClient, _super);
     function MessoClient(url) {
@@ -107,47 +127,32 @@ var MessoClient = /** @class */ (function (_super) {
     };
     MessoClient.prototype.handleMessage = function (event, id, data) {
         this.ws.send(JSON.stringify({
-            type: 'message',
-            event: event,
+            type: 'ack',
             id: id,
-            data: data
+            event: event,
+            data: +new Date
         }));
+        this.emit.apply(this, [event, data]);
     };
     MessoClient.prototype.handleRequest = function (id, event, data) {
-        var fn = function (payload) {
-            this.ws.send(JSON.stringify({
-                type: 'response',
-                event: event,
-                id: id,
-                data: payload
-            }));
-        }.bind(this);
-        this.emit.apply(this, __spreadArrays([event], data, [fn]));
+        this.emit(event, new MessoRequest(id, event, data, this.ws));
     };
     MessoClient.prototype.handlResponse = function (id, data) {
         var response = this.responses.get(id);
         response.resolve(data);
         this.responses["delete"](id);
     };
-    MessoClient.prototype.send = function (event) {
-        var args = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            args[_i - 1] = arguments[_i];
-        }
+    MessoClient.prototype.send = function (event, body) {
         var id = uuidv4();
         this.ws.send(JSON.stringify({
             type: 'message',
             id: id,
             event: event,
-            data: args
+            data: body
         }));
     };
-    MessoClient.prototype.request = function (event) {
+    MessoClient.prototype.request = function (event, body) {
         var _this = this;
-        var args = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            args[_i - 1] = arguments[_i];
-        }
         var id = uuidv4();
         var resolve, reject;
         var promise = new Promise(function (res, rej) {
@@ -157,7 +162,7 @@ var MessoClient = /** @class */ (function (_super) {
                 type: 'request',
                 id: id,
                 event: event,
-                data: args
+                data: body
             }));
         });
         this.responses.set(id, {
