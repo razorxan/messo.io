@@ -77,6 +77,22 @@ var MessoMessage = /** @class */ (function () {
     };
     return MessoMessage;
 }());
+var MessoResponse = /** @class */ (function (_super) {
+    __extends(MessoResponse, _super);
+    function MessoResponse() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return MessoResponse;
+}(MessoMessage));
+;
+var MessoAck = /** @class */ (function (_super) {
+    __extends(MessoAck, _super);
+    function MessoAck() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return MessoAck;
+}(MessoMessage));
+;
 var MessoRequest = /** @class */ (function (_super) {
     __extends(MessoRequest, _super);
     function MessoRequest(id, event, body, socket) {
@@ -101,7 +117,7 @@ var MessoClient = /** @class */ (function (_super) {
         var _this = _super.call(this) || this;
         _this.url = url;
         _this.ws = new WebSocket(_this.url);
-        _this.responses = new Map();
+        _this._promises = new Map();
         _this.initHandlers();
         return _this;
     }
@@ -114,62 +130,72 @@ var MessoClient = /** @class */ (function (_super) {
             var _a = JSON.parse(e.data), type = _a.type, id = _a.id, event = _a.event, data = _a.data;
             switch (type) {
                 case 'response':
-                    _this.handlResponse(id, data);
+                    _this.handlResponse(id, event, data);
                     break;
                 case 'request':
                     _this.handleRequest(id, event, data);
                     break;
                 case 'message':
-                    _this.handleMessage(event, id, data);
+                    _this.handleMessage(id, event, data);
+                    break;
+                case 'ack':
+                    _this.handleAck(id, event, data);
                     break;
             }
         });
     };
-    MessoClient.prototype.handleMessage = function (event, id, data) {
+    MessoClient.prototype.handleMessage = function (id, event, body) {
         this.ws.send(JSON.stringify({
             type: 'ack',
             id: id,
             event: event,
             data: +new Date
         }));
-        this.emit.apply(this, [event, data]);
+        this.emit(event, new MessoMessage(id, event, body));
     };
-    MessoClient.prototype.handleRequest = function (id, event, data) {
-        this.emit(event, new MessoRequest(id, event, data, this.ws));
+    MessoClient.prototype.handleAck = function (id, event, body) {
+        var promise = this._promises.get(id);
+        if (!promise)
+            throw new Error('Could not find an response object suitable for the ack.');
+        promise.resolve(new MessoAck(id, event, body));
+        this._promises["delete"](id);
     };
-    MessoClient.prototype.handlResponse = function (id, data) {
-        var response = this.responses.get(id);
-        response.resolve(data);
-        this.responses["delete"](id);
+    MessoClient.prototype.handleRequest = function (id, event, body) {
+        this.emit(event, new MessoRequest(id, event, body, this.ws));
     };
-    MessoClient.prototype.send = function (event, body) {
-        var id = uuidv4();
-        this.ws.send(JSON.stringify({
-            type: 'message',
-            id: id,
-            event: event,
-            data: body
-        }));
+    MessoClient.prototype.handlResponse = function (id, event, body) {
+        var response = this._promises.get(id);
+        response.resolve(new MessoResponse(id, event, body));
+        this._promises["delete"](id);
     };
-    MessoClient.prototype.request = function (event, body) {
+    MessoClient.prototype.createSendPromise = function (type, event, data) {
         var _this = this;
+        var promise = {
+            reject: function () { },
+            resolve: function () { }
+        };
         var id = uuidv4();
-        var resolve, reject;
-        var promise = new Promise(function (res, rej) {
-            resolve = res;
-            reject = rej;
-            _this.ws.send(JSON.stringify({
-                type: 'request',
+        var result = new Promise(function (res, rej) {
+            promise.resolve = res;
+            promise.reject = rej;
+            _this.sendObject({
+                type: type,
                 id: id,
                 event: event,
-                data: body
-            }));
+                data: data
+            });
         });
-        this.responses.set(id, {
-            resolve: resolve,
-            reject: reject
-        });
-        return promise;
+        this._promises.set(id, promise);
+        return result;
+    };
+    MessoClient.prototype.sendObject = function (data) {
+        this.ws.send(JSON.stringify(data));
+    };
+    MessoClient.prototype.request = function (event, body) {
+        return this.createSendPromise('request', event, body);
+    };
+    MessoClient.prototype.send = function (event, body) {
+        return this.createSendPromise('message', event, body);
     };
     return MessoClient;
 }(EventEmitter));

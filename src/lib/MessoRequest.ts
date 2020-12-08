@@ -1,12 +1,11 @@
 import ws from 'ws';
-import MessoMessage from './MessoMessage'
-import MessoBody from './interfaces/IMessoBody.interface';
+import { MessoMessage, IMessoBody } from './';
 
 class MessoRequest extends MessoMessage {
 
     private _socket: ws;
 
-    constructor(id: string, event: string, body: MessoBody, socket: ws) {
+    constructor(id: string, event: string, body: IMessoBody, socket: ws) {
         super(id, event, body);
         this._socket = socket;
     }

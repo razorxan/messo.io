@@ -1,4 +1,4 @@
-import MessoBody from './interfaces/IMessoBody.interface';
+import IMessoBody from './interfaces/IMessoBody';
 
 class MessoMessage {
 
@@ -6,7 +6,7 @@ class MessoMessage {
     protected _event: string;
     protected _body: any;
 
-    constructor(id: string, event: string, body: MessoBody) {
+    constructor(id: string, event: string, body: IMessoBody) {
         this._id = id;
         this._event = event;
         this._body = body;

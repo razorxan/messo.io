@@ -1,6 +1,6 @@
 import { MessoEventHandler } from '../types';
 
-export default interface MessoListener {
+export default interface IMessoListener {
     type: 'request' | 'message';
     event: string;
     handler: MessoEventHandler;

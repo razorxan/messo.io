@@ -1,30 +1,30 @@
 import ws from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import MessoChannel from './MessoChannel';
-import MessoAck from './interfaces/IMessoAck.interface';
-import MessoMeta from './interfaces/IMessoMeta.interface';
-import MessoRequest from './MessoRequest';
-import MessoEventEmitter from './MessoEventEmitter';
+import {
+    MessoRequest,
+    MessoResponse,
+    MessoAck,
+    MessoChannel,
+    MessoEventEmitter,
+    MessoMessage,
+    IMessoMeta,
+    IMessoPromise
+} from './';
 
 
 //TODO: refactor this with MessoSocket and fix private members, getters and setters
 //TODO: impelement aks for type message
 class MessoPeer extends MessoEventEmitter {
 
-    _id: string;
-    _socket: ws;
-    _channel: MessoChannel;
-    _responses: Map<string, MessoAck>;
-    _meta: MessoMeta;
+    private _id: string;
+    private _promises: Map<string, IMessoPromise>;
 
-    constructor(channel: MessoChannel, socket: ws, meta: MessoMeta = {}) {
+    constructor(private _channel: MessoChannel, private _socket: ws, private _meta: IMessoMeta = {}) {
         super();
-        this._channel = channel;
-        this._socket = socket;
-        this._responses = new Map<string, MessoAck>();
+        this._promises = new Map<string, IMessoPromise>();
         this._id = uuidv4();
-        this._meta = meta;
         this.initSocketHandler();
+
     }
 
     public get(key: string) {
@@ -40,24 +40,23 @@ class MessoPeer extends MessoEventEmitter {
     }
 
     initSocketHandler(): void {
-        this.socket.on('message', (e: ws.Data) => {
+        this._socket.on('message', (e: ws.Data) => {
+            if (typeof e !== 'string') return;
             try {
-                if (typeof e !== 'string') return;
-                const { type, id, event, data }: { type: string, id: string, event: string, data: any[] } = JSON.parse(e);
+                const { type, id, event, data }: { type: string, id: string, event: string, data: any } = JSON.parse(e);
                 switch (type) {
                     case 'request':
-                        this.handleRequestEvent(event, id, data);
+                        this.handleRequestEvent(id, event, data);
                         break;
                     case 'response':
-                        this.handlResponseEvent(id, data);
+                        this.handlResponseEvent(id, event, data);
                         break;
                     case 'message':
-                        this.emitMessage(event, data);
+                        this.handleMessageEvent(id, event, data);
                         break;
                     case 'ack':
-                        this.handleAckEvent(id, data);
+                        this.handleAckEvent(id, event, data);
                         break;
-
                 }
             } catch (error) {
                 throw new Error(error);
@@ -65,22 +64,56 @@ class MessoPeer extends MessoEventEmitter {
         });
     }
 
-    private handleRequestEvent(event: string, id: string, data: any[]) {
-        this.emitRequest(event, new MessoRequest(id, event, data, this.socket));
+    private handleRequestEvent(id: string, event: string, data: any) {
+        this.emitRequest(event, new MessoRequest(id, event, data, this._socket));
     }
 
-    private handlResponseEvent(id: string, data: any) {
-        const response = this._responses.get(id);
-        if (!response) throw new Error('Could not find an response object suitable for the request.');
-        response.resolve(data);
-        this._responses.delete(id);
+    private handleMessageEvent(id: string, event: string, data: any) {
+        this.sendObject({
+            type: 'ack',
+            id,
+            event,
+            data: +new Date
+        });
+        this.emitMessage(event, new MessoMessage(id, event, data));
     }
 
-    private handleAckEvent(id: string, data: any) {
-        const response = this._responses.get(id);
-        if (!response) throw new Error('Could not find an response object suitable for the message.');
-        response.resolve(data);
-        this._responses.delete(id);
+    private handlResponseEvent(id: string, event: string, data: any) {
+        const promise = this._promises.get(id);
+        if (!promise) throw new Error('Could not find an response object suitable for the request.');
+        promise.resolve(new MessoResponse(id, event, data));
+        this._promises.delete(id);
+    }
+
+    private handleAckEvent(id: string, event: string, data: any) {
+        const promise = this._promises.get(id);
+        if (!promise) throw new Error('Could not find an response object suitable for the ack.');
+        promise.resolve(new MessoAck(id, event, data));
+        this._promises.delete(id);
+    }
+
+    private createSendPromise<T>(type: string, event: string, data: any): Promise<T> {
+        const promise: IMessoPromise = {
+            reject: () => { },
+            resolve: () => { },
+        };
+        const id = uuidv4();
+        const result: Promise<T> = new Promise((res, rej) => {
+            promise.resolve = res;
+            promise.reject = rej;
+            this.sendObject({
+                type,
+                id,
+                event,
+                data,
+            });
+        });
+        this._promises.set(id, promise);
+        return result;
+    }
+
+    private sendObject(data: any) {
+        this._socket.send(JSON.stringify(data));
     }
 
     public join(roomId: string): this {
@@ -93,39 +126,12 @@ class MessoPeer extends MessoEventEmitter {
         return this;
     }
 
-    public request(event: string, body: any): Promise<MessoRequest> {
-        let resolve = () => { }, reject = () => { };
-        const id = uuidv4();
-        const promise: Promise<MessoRequest> = new Promise((res, rej) => {
-            resolve = res;
-            reject = rej;
-            this._socket.send(JSON.stringify({
-                type: 'request',
-                id,
-                event,
-                data: body,
-            }))
-        })
-        //FIXME: timeout should be handled in the server configuration
-        this._responses.set(id, { resolve, reject });
-        return promise;
+    public request(event: string, body: any): Promise<MessoResponse> {
+        return this.createSendPromise<MessoResponse>('request', event, body);
     }
 
     public send(event: string, body: any): Promise<MessoAck> {
-        let resolve = () => { }, reject = () => { };
-        const id = uuidv4();
-        const promise: Promise<MessoAck> = new Promise((res, rej) => {
-            resolve = res;
-            reject = rej;
-            this._socket.send(JSON.stringify({
-                type: 'message',
-                id,
-                event,
-                data: body,
-            }));
-        });
-        this._responses.set(id, { resolve, reject });
-        return promise;
+        return this.createSendPromise<MessoAck>('message', event, body);
     }
 
 }

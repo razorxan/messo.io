@@ -1,16 +1,16 @@
 import http from 'http';
 import https from 'https';
-import querystring from 'querystring';
 import { parse as parseUrl } from 'url';
 import { EventEmitter } from 'events';
 import { Socket } from 'net';
-
-import MessoPeer from './MessoPeer';
-import MessoChannel from './MessoChannel';
-
-import MessoServerOptions from './interfaces/IMessoServerOptions.interface';
-import { MessoAuthenticationMiddleware } from './types';
-import MessoAck from './interfaces/IMessoAck.interface';
+import {
+    MessoPeer,
+    MessoChannel,
+    IMessoServerOptions,
+    MessoAuthenticationMiddleware,
+    MessoAck,
+    MessoResponse
+} from './';
 
 class MessoServer extends EventEmitter {
 
@@ -18,7 +18,7 @@ class MessoServer extends EventEmitter {
     private _server: http.Server | https.Server;
     private _port: number;
 
-    constructor(options: MessoServerOptions) {
+    constructor(options: IMessoServerOptions) {
         super();
         if (options.server) {
             this._server = options.server;
@@ -63,7 +63,7 @@ class MessoServer extends EventEmitter {
         return this;
     }
 
-    public request(peerId: string, event: string, body: any): Promise<any> {
+    public request(peerId: string, event: string, body: any): Promise<MessoResponse> {
         return this.channel('/').request(peerId, event, body);
     }
 

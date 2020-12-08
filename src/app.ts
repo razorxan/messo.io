@@ -1,7 +1,13 @@
 import http from 'http';
 import { ParsedUrlQuery } from 'querystring';
-import { MessoRequest, MessoServer, MessoPeer, MessoMessage } from './';
-import MessoAck from './lib/interfaces/IMessoAck.interface';
+import {
+    MessoRequest,
+    MessoResponse,
+    MessoServer,
+    MessoPeer,
+    MessoMessage,
+    MessoAck
+} from './';
 
 const server = new http.Server()
 
@@ -20,26 +26,32 @@ ms.use(async (query: ParsedUrlQuery, headers: http.IncomingHttpHeaders, cookies:
 });
 
 ms.on('connection', async (messo: MessoPeer) => {
-    ms.request(messo.id, 'prova', 'ciaone').then((response: MessoRequest) => {
-        console.log('response from client', response)
-    }).catch(error => {
-        console.log(error);
-    });
-    ms.send(messo.id, 'test_messageru', 'ciao').then((ack: MessoAck) => {
-        console.log('ack', ack)
-    });
-    messo.onMessage("ciccio", (payload: MessoMessage) => {
-        console.log('ciccio event', payload)
+
+    messo.onMessage("message", (message: MessoMessage) => {
+        console.log('message', message.body())
     });
 
-    messo.onMessage("test_message", (payload: MessoMessage) => {
-        console.log('test_message event', payload);
+    messo.onRequest('request', (request: MessoRequest) => {
+        console.log('request', request.body());
+        request.respond({ type: "response", from: "server" });
     });
 
-    messo.onRequest('request_test', (request: MessoRequest) => {
-        console.log('request_test', request.body());
-        request.respond('dio');
+    messo.request("request", { type: "request", from: "server" }).then((response: MessoResponse) => {
+        console.log('response', response.body());
     });
+
+    messo.send("message", { type: "message", from: "server" }).then(() => {
+        console.log('sent to client');
+    });
+
+    // ms.request(messo.id, 'prova', 'ciaone').then((response: MessoResponse) => {
+    //     console.log('response from client', response)
+    // }).catch(error => {
+    //     console.log(error);
+    // });
+    // ms.send(messo.id, 'test_messageru', 'ciao').then((ack: MessoAck) => {
+    //     console.log('ack', ack)
+    // });
 
     // console.log(messo.id, 'connected');
     // messo.on('socket::add', async () => {

@@ -1,7 +1,5 @@
 import { EventEmitter } from 'events';
-import MessoChannel from './MessoChannel';
-import MessoCollection from './MessoCollection';
-import MessoPeer from './MessoPeer';
+import { MessoChannel, MessoCollection, MessoPeer } from './';
 
 class MessoRoom extends EventEmitter {
 
@@ -30,9 +28,9 @@ class MessoRoom extends EventEmitter {
         return this;
     }
 
-    send(event: string, ...args: any): this {
+    send(event: string, body: any): this {
         this.peers.each((peer: MessoPeer) => {
-            peer.send(event, ...args);
+            peer.send(event, body);
         });
         return this;
     }

@@ -8,6 +8,11 @@ const uuidv4 = () => {
     return uuid;
 }
 
+interface IMessoPromise {
+    resolve: (...args: any) => void,
+    reject: (...args: any) => void,
+}
+
 type EventEmitterCallback = (body: any) => {};
 
 class EventEmitter {
@@ -79,6 +84,11 @@ class MessoMessage {
     }
 
 }
+
+class MessoResponse extends MessoMessage { };
+
+class MessoAck extends MessoMessage { };
+
 class MessoRequest extends MessoMessage {
 
     private _socket: WebSocket;
@@ -97,20 +107,18 @@ class MessoRequest extends MessoMessage {
         }));
     }
 
-
 }
-
 
 class MessoClient extends EventEmitter {
     private url: string;
     private ws: WebSocket;
-    private responses: Map<any, any>;
+    private _promises: Map<any, any>;
 
     constructor(url: string = '/') {
         super();
         this.url = url;
         this.ws = new WebSocket(this.url);
-        this.responses = new Map();
+        this._promises = new Map();
         this.initHandlers();
     }
 
@@ -123,66 +131,78 @@ class MessoClient extends EventEmitter {
 
             switch (type) {
                 case 'response':
-                    this.handlResponse(id, data);
+                    this.handlResponse(id, event, data);
                     break;
                 case 'request':
                     this.handleRequest(id, event, data);
                     break;
                 case 'message':
-                    this.handleMessage(event, id, data);
+                    this.handleMessage(id, event, data);
+                    break;
+                case 'ack':
+                    this.handleAck(id, event, data);
                     break;
             }
         });
     }
 
-    private handleMessage(event: string, id: string, data: any) {
+    private handleMessage(id: string, event: string, body: any) {
         this.ws.send(JSON.stringify({
             type: 'ack',
             id,
             event,
             data: +new Date,
         }));
-        this.emit.apply(this, [event, data]);
+        this.emit(event, new MessoMessage(id, event, body));
     }
 
-    private handleRequest(id: string, event: string, data: any) {
-        this.emit(event, new MessoRequest(id, event, data, this.ws));
+    private handleAck(id: string, event: string, body: any) {
+        const promise = this._promises.get(id);
+        if (!promise) throw new Error('Could not find an response object suitable for the ack.');
+        promise.resolve(new MessoAck(id, event, body));
+        this._promises.delete(id);
     }
 
-    private handlResponse(id: string, data: any) {
-        const response = this.responses.get(id);
-        response.resolve(data);
-        this.responses.delete(id);
+    private handleRequest(id: string, event: string, body: any) {
+        this.emit(event, new MessoRequest(id, event, body, this.ws));
     }
 
-    public send(event: string, body: any) {
-        const id: string = uuidv4();
-        this.ws.send(JSON.stringify({
-            type: 'message',
-            id,
-            event,
-            data: body,
-        }));
+    private handlResponse(id: string, event: string, body: any) {
+        const response = this._promises.get(id);
+        response.resolve(new MessoResponse(id, event, body));
+        this._promises.delete(id);
     }
 
-    request(event: string, body?: any) {
-        const id: string = uuidv4();
-        let resolve: any, reject: any;
-        const promise = new Promise((res, rej) => {
-            resolve = res;
-            reject = rej;
-            this.ws.send(JSON.stringify({
-                type: 'request',
+    private createSendPromise<T>(type: string, event: string, data: any): Promise<T> {
+        const promise: IMessoPromise = {
+            reject: () => { },
+            resolve: () => { },
+        };
+        const id = uuidv4();
+        const result: Promise<T> = new Promise((res, rej) => {
+            promise.resolve = res;
+            promise.reject = rej;
+            this.sendObject({
+                type,
                 id,
                 event,
-                data: body
-            }));
+                data,
+            });
         });
-        this.responses.set(id, {
-            resolve,
-            reject,
-        });
-        return promise;
+        this._promises.set(id, promise);
+        return result;
+    }
+
+    private sendObject(data: any) {
+        this.ws.send(JSON.stringify(data));
+    }
+
+    public request(event: string, body?: any): Promise<MessoResponse> {
+        return this.createSendPromise<MessoResponse>('request', event, body);
+    }
+
+    public send(event: string, body?: any): Promise<MessoAck> {
+        return this.createSendPromise<MessoAck>('message', event, body);
     }
 
 }

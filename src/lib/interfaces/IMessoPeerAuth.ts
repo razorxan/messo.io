@@ -1,4 +1,4 @@
-export default interface MessoPeerAuth {
+export default interface IMessoPeerAuth {
     /** Unique identifier of the peer */
     id: string;
     meta?: {

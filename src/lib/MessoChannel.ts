@@ -5,12 +5,14 @@ import { EventEmitter } from 'events';
 import { parse as parseUrl } from 'url';
 import querystring from 'querystring';
 import ws from 'ws';
-import MessoRoom from './MessoRoom';
-import MessoPeer from './MessoPeer';
-import MessoCollection from './MessoCollection';
-import { MessoAuthenticationMiddleware } from './types';
-import MessoRequest from './MessoRequest';
-import MessoAck from './interfaces/IMessoAck.interface';
+import {
+    MessoRoom,
+    MessoPeer,
+    MessoCollection,
+    MessoAuthenticationMiddleware,
+    MessoAck,
+    MessoResponse
+} from './';
 
 class MessoChannel extends EventEmitter {
 
@@ -82,8 +84,7 @@ class MessoChannel extends EventEmitter {
         return this._peers.get(id);
     }
 
-
-    request(peerId: string, event: string, body: any): Promise<MessoRequest> {
+    request(peerId: string, event: string, body: any): Promise<MessoResponse> {
         const peer = this._peers.get(peerId);
         if (!peer) throw new Error(`Cannot send request to peer with id ${peerId} does not exist.`);
         return peer.request(event, body)
@@ -115,10 +116,10 @@ class MessoChannel extends EventEmitter {
         return this._rooms.get(roomId);
     }
 
-    sendToRoom(roomId: string, event: string, ...args: any): this {
+    sendToRoom(roomId: string, event: string, body: any): this {
         const room = this._rooms.get(roomId);
         if (room) {
-            room.send(event, ...args);
+            room.send(event, body);
             return this;
         }
         throw new Error(`Cannnot send to room with id ${room}. The room does not exists.`)
