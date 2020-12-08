@@ -44,35 +44,4 @@ ms.on('connection', async (messo: MessoPeer) => {
         console.log('sent to client');
     });
 
-    // ms.request(messo.id, 'prova', 'ciaone').then((response: MessoResponse) => {
-    //     console.log('response from client', response)
-    // }).catch(error => {
-    //     console.log(error);
-    // });
-    // ms.send(messo.id, 'test_messageru', 'ciao').then((ack: MessoAck) => {
-    //     console.log('ack', ack)
-    // });
-
-    // console.log(messo.id, 'connected');
-    // messo.on('socket::add', async () => {
-    //     console.log('new socket')
-    //     const result = await messo.request('prova', 'ciaone')
-    //     console.log(result)
-    // }).on('close', () => {
-    //     console.log(messo.id, 'disconnected');
-    // })
-    // messo.on('request_test', (data: any, respond: Function) => {
-    //     console.log('here. request_test_callback');
-    //     respond('dont touch my tralalala');
-    // });
-
-    // messo.on('test_message', (data: any) => {
-    //     console.log('test_message', data);
-    // });
-
-
-
-
-
-
 });
