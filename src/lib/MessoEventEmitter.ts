@@ -1,44 +1,21 @@
-import MessoRequest from './MessoRequest';
-import { MessoEventHandler } from './types'
 
+import {
+    IMessoListener,
+    MessoEventHandler,
+    MessoHandlerParamType,
+    MessoListenerType
+} from '../';
 
-interface MessoListener {
-    type: 'request' | 'message';
-    event: string;
-    handler: MessoEventHandler;
-}
-
-
-interface MessoMessage {
-    [key: string]: any
-}
 
 class MessoEventEmitter {
 
-    private _listeners: Map<string, MessoListener[]>;
+    private _listeners: Map<string, IMessoListener[]> = new Map();
 
-    constructor() {
-        this._listeners = new Map();
-    }
-
-    public onRequest(event: string, handler: MessoEventHandler): this {
-        const listener: MessoListener = {
-            type: 'request',
+    private createListener<T extends MessoHandlerParamType>(type: MessoListenerType, event: string, handler: MessoEventHandler<T>) {
+        const listener: IMessoListener = {
+            type,
             event,
-            handler
-        };
-        if (!this._listeners.has(event)) {
-            this._listeners.set(event, []);
-        }
-        this._listeners.get(event)!.push(listener);
-        return this;
-    }
-
-    public onMessage(event: string, handler: MessoEventHandler): this {
-        const listener: MessoListener = {
-            type: 'message',
-            event,
-            handler
+            handler: handler as MessoEventHandler<T>
         }
         if (!this._listeners.has(event)) {
             this._listeners.set(event, []);
@@ -47,46 +24,58 @@ class MessoEventEmitter {
         return this;
     }
 
-    public on(event: string, handler: MessoEventHandler): this {
-        return this.onMessage(event, handler);
-    }
-
-    public off(event?: string, handler?: MessoEventHandler): this {
-        if (!event) {
-            this._listeners.forEach((_: MessoListener[], event: string) => {
-                this._listeners.delete(event);
-            });
-        } else if (handler) {
-            const events: MessoListener[] | undefined = this._listeners.get(event);
-            if (events) {
-                const i: number = events.findIndex((listener: MessoListener) => listener.handler === handler);
-                if (i > 0) events.splice(i, 1);
-                if (events.length < 1) this._listeners.delete(event);
-            }
-        } else {
-            this._listeners.delete(event);
+    protected emit(type: MessoListenerType, event: string, body: any) {
+        const listeners = this._listeners.get(event);
+        if (listeners) {
+            listeners
+                .filter((listener: IMessoListener) => listener.type === type)
+                .forEach((listener: IMessoListener) => listener.handler(body))
         }
         return this;
     }
 
-    public emitRequest(event: string, request: MessoRequest) {
-        const listeners = this._listeners.get(event);
-        if (listeners) {
-            listeners
-                .filter((listener: MessoListener) => listener.type === 'request')
-                .forEach((listener: MessoListener) => listener.handler(request))
+    public on<T extends MessoHandlerParamType>(type: MessoListenerType, event: string, handler: MessoEventHandler<T>): this {
+        switch (type) {
+            case "request":
+                return this.onRequest<T>(event, handler);
+            case "message":
+                return this.onMessage<T>(event, handler);
+            case "event":
+                return this.onEvent<T>(event, handler);
         }
     }
 
-    public emitMessage(event: string, message: MessoMessage) {
-        const listeners = this._listeners.get(event);
-        if (listeners) {
-            listeners
-                .filter((listener: MessoListener) => listener.type === 'message')
-                .forEach((listener: MessoListener) => listener.handler(message))
-        }
+    public onRequest<T extends MessoHandlerParamType>(event: string, handler: MessoEventHandler<T>): this {
+        return this.createListener<T>('request', event, handler);
     }
+
+    public onMessage<T extends MessoHandlerParamType>(event: string, handler: MessoEventHandler<T>): this {
+        return this.createListener<T>('message', event, handler);
+    }
+
+    public onEvent<T extends MessoHandlerParamType>(event: string, handler: MessoEventHandler<T>): this {
+        return this.createListener('event', event, handler);
+    }
+
+    // public off<T extends MessoHandlerParamType>(event?: string, handler?: MessoEventHandler<T>): this {
+    //     if (!event) {
+    //         this._listeners.forEach((_: IMessoListener[], event: string) => {
+    //             this._listeners.delete(event);
+    //         });
+    //     } else if (handler) {
+    //         const events: IMessoListener[] | undefined = this._listeners.get(event);
+    //         if (events) {
+    //             const i: number = events.findIndex((listener: IMessoListener) => listener.handler === handler);
+    //             if (i > 0) events.splice(i, 1);
+    //             if (events.length < 1) this._listeners.delete(event);
+    //         }
+    //     } else {
+    //         this._listeners.delete(event);
+    //     }
+    //     return this;
+    // }
 
 }
+
 
 export default MessoEventEmitter;

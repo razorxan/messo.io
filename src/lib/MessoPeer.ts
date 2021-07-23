@@ -40,6 +40,9 @@ class MessoPeer extends MessoEventEmitter {
     }
 
     initSocketHandler(): void {
+        this._socket.on('close', () => {
+            this.emit('event', 'close', null);
+        });
         this._socket.on('message', (e: ws.Data) => {
             if (typeof e !== 'string') return;
             try {
@@ -65,7 +68,7 @@ class MessoPeer extends MessoEventEmitter {
     }
 
     private handleRequestEvent(id: string, event: string, data: any) {
-        this.emitRequest(event, new MessoRequest(id, event, data, this._socket));
+        this.emit('request', event, new MessoRequest(id, event, data, this._socket));
     }
 
     private handleMessageEvent(id: string, event: string, data: any) {
@@ -75,7 +78,7 @@ class MessoPeer extends MessoEventEmitter {
             event,
             data: +new Date
         });
-        this.emitMessage(event, new MessoMessage(id, event, data));
+        this.emit('message', event, new MessoMessage(id, event, data));
     }
 
     private handlResponseEvent(id: string, event: string, data: any) {

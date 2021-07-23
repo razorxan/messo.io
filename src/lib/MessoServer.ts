@@ -42,7 +42,6 @@ class MessoServer extends EventEmitter {
         });
     }
 
-
     public channel(name: string): MessoChannel {
         let channel: MessoChannel | undefined = this._channels.get(name);
         if (channel === undefined) {
@@ -57,6 +56,7 @@ class MessoServer extends EventEmitter {
     }
 
     public chan = this.channel.bind(this);
+    public of = this.channel.bind(this);
 
     public use(authenticate: MessoAuthenticationMiddleware): this {
         this.channel('/').use(authenticate);
@@ -77,12 +77,12 @@ class MessoServer extends EventEmitter {
         return this;
     }
 
-    public send(peerId: string, event: string, data: any): Promise<MessoAck> {
-        return this.channel('/').send(peerId, event, data);
+    public send(peerId: string, event: string, body: any): Promise<MessoAck> {
+        return this.channel('/').send(peerId, event, body);
     }
 
-    public sendToRoom(roomId: string, event: string, ...args: any): this {
-        this.channel('/').sendToRoom(roomId, event, ...args);
+    public sendToRoom(roomId: string, event: string, body: any): this {
+        this.channel('/').sendToRoom(roomId, event, body);
         return this
     }
 

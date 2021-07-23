@@ -6,6 +6,7 @@ import { parse as parseUrl } from 'url';
 import querystring from 'querystring';
 import ws from 'ws';
 import {
+    IMessoMeta,
     MessoRoom,
     MessoPeer,
     MessoCollection,
@@ -63,17 +64,22 @@ class MessoChannel extends EventEmitter {
         const headers = request.headers;
         const cookies = this.parseCookies(request);
         try {
-            const result = await this._authenticate(query, headers, cookies);
-            const current_peer = this._peers.find(result.peer);
-            this._server.handleUpgrade(request, socket, head, (ws: ws) => {
-                const peer = new MessoPeer(this, ws, result.meta);
-                peer.on('close', _ => {
-                    this._peers.delete(peer.id);
-                })
-                this._peers.push(peer);
-                this.emit('connection', peer);
-            });
-
+            try {
+                const result: IMessoMeta = await this._authenticate(query, headers, cookies);
+                this._server.handleUpgrade(request, socket, head, (ws: ws) => {
+                    const peer = new MessoPeer(this, ws, result);
+                    peer.on('event', 'close', (_: any) => {
+                        this._peers.delete(peer.id);
+                    });
+                    this._peers.push(peer);
+                    this.emit('connection', peer);
+                });
+            } catch (error) {
+                console.log(error);
+                this._server.handleUpgrade(request, socket, head, (ws: ws) => {
+                    ws.close(400);
+                });
+            }
         } catch (e) {
             socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
             socket.destroy();
@@ -116,7 +122,7 @@ class MessoChannel extends EventEmitter {
         return this._rooms.get(roomId);
     }
 
-    sendToRoom(roomId: string, event: string, body: any): this {
+    public sendToRoom(roomId: string, event: string, body: any): this {
         const room = this._rooms.get(roomId);
         if (room) {
             room.send(event, body);
