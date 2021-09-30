@@ -1,6 +1,5 @@
 import http from 'http';
 import https from 'https';
-import { parse as parseUrl } from 'url';
 import { EventEmitter } from 'events';
 import { Socket } from 'net';
 import {
@@ -35,8 +34,9 @@ class MessoServer extends EventEmitter {
 
     private handleEvents(): void {
         this._server.on('upgrade', async (request: http.IncomingMessage, socket: Socket, head: any) => {
-            const requestUrl = request.url ?? ""
-            const channelName: string | null = parseUrl(requestUrl).pathname ?? '/';
+            const requestUrl = request.url ?? "";
+            const uri: URL = new URL(requestUrl, `http://${request.headers.host}`);
+            const channelName: string | null = uri.pathname ?? '/';
             const channel = this.channel(channelName);
             channel.handle(request, socket, head);
         });
@@ -51,7 +51,6 @@ class MessoServer extends EventEmitter {
             });
             this._channels.set(name, channel);
         }
-
         return channel;
     }
 

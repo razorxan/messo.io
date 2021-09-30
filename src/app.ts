@@ -12,13 +12,16 @@ import { MessoEvent } from './lib';
 
 const server = new http.Server()
 
-server.listen(3030, () => {
-    console.log("listening on port 3030")
+server.listen(8080, () => {
+    console.log("listening on port 8080")
 });
 
 const ms: MessoServer = new MessoServer({
     server: server
 });
+
+
+
 ms.use(async (query: ParsedUrlQuery, headers: http.IncomingHttpHeaders, cookies: any) => {
     return {
         qualcosa: 'a'
@@ -28,7 +31,7 @@ ms.use(async (query: ParsedUrlQuery, headers: http.IncomingHttpHeaders, cookies:
 ms.on('connection', async (messo: MessoPeer) => {
 
     messo.onMessage("message", (message: MessoMessage) => {
-        console.log('message', message.body())
+        console.log('message', message.body());
     });
 
     messo.on<MessoRequest>('request', 'request', (request: MessoRequest) => {
