@@ -1,25 +1,25 @@
 import ws from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import {
-    MessoRequest,
-    MessoResponse,
-    MessoAck,
-    MessoChannel,
-    MessoEventEmitter,
-    MessoMessage,
+    Request,
+    Response,
+    Ack,
+    Channel,
+    EventEmitter,
+    Message,
     IMessoMeta,
-    IMessoPromise
-} from './';
-
+    IMessoPromise,
+    IMessoRequestOptions,
+} from '.';
 
 //TODO: refactor this with MessoSocket and fix private members, getters and setters
 //TODO: impelement aks for type message
-class MessoPeer extends MessoEventEmitter {
+class MessoPeer extends EventEmitter {
 
     private _id: string;
     private _promises: Map<string, IMessoPromise>;
 
-    constructor(private _channel: MessoChannel, private _socket: ws, private _meta: IMessoMeta = {}) {
+    constructor(private _channel: Channel, private _socket: ws, private _meta: IMessoMeta = {}) {
         super();
         this._promises = new Map<string, IMessoPromise>();
         this._id = uuidv4();
@@ -68,7 +68,7 @@ class MessoPeer extends MessoEventEmitter {
     }
 
     private handleRequestEvent(id: string, event: string, data: any) {
-        this.emit('request', event, new MessoRequest(id, event, data, this._socket));
+        this.emit('request', event, new Request(id, event, data, this._socket));
     }
 
     private handleMessageEvent(id: string, event: string, data: any) {
@@ -78,24 +78,24 @@ class MessoPeer extends MessoEventEmitter {
             event,
             data: +new Date
         });
-        this.emit('message', event, new MessoMessage(id, event, data));
+        this.emit('message', event, new Message(id, event, data));
     }
 
     private handlResponseEvent(id: string, event: string, data: any) {
         const promise = this._promises.get(id);
         if (!promise) throw new Error('Could not find an response object suitable for the request.');
-        promise.resolve(new MessoResponse(id, event, data));
+        promise.resolve(new Response(id, event, data));
         this._promises.delete(id);
     }
 
     private handleAckEvent(id: string, event: string, data: any) {
         const promise = this._promises.get(id);
         if (!promise) throw new Error('Could not find an response object suitable for the ack.');
-        promise.resolve(new MessoAck(id, event, data));
+        promise.resolve(new Ack(id, event, data));
         this._promises.delete(id);
     }
 
-    private createSendPromise<T>(type: string, event: string, data: any): Promise<T> {
+    private createSendPromise<T>(type: string, event: string, data: any, options?: IMessoRequestOptions): Promise<T> {
         const promise: IMessoPromise = {
             reject: () => { },
             resolve: () => { },
@@ -112,7 +112,16 @@ class MessoPeer extends MessoEventEmitter {
             });
         });
         this._promises.set(id, promise);
-        return result;
+        return this.createTimeoutPromiseRace<T>(result, options?.timeout || 5000);
+    }
+
+    private createTimeoutPromiseRace<T>(promise: Promise<T>, timeout: number): Promise<T> {
+        const timeoutPromise: Promise<T> = new Promise((_, rej) => {
+            setTimeout(() => {
+                rej(new Error(`Request Timeout: exceeded ${timeout} ms`));
+            }, timeout);
+        });
+        return Promise.race([timeoutPromise, promise]);
     }
 
     private sendObject(data: any) {
@@ -129,12 +138,21 @@ class MessoPeer extends MessoEventEmitter {
         return this;
     }
 
-    public request(event: string, body: any): Promise<MessoResponse> {
-        return this.createSendPromise<MessoResponse>('request', event, body);
+    public request(event: string, body: any, options?: IMessoRequestOptions): Promise<Response> {
+        return this.createSendPromise<Response>('request', event, body, options);
     }
 
-    public send(event: string, body: any): Promise<MessoAck> {
-        return this.createSendPromise<MessoAck>('message', event, body);
+    public send(event: string, body: any): Promise<Ack>;
+    public send(event: string, body: any, callback: (ack: Ack) => any): void;
+    public send(event: string, body: any, callback?: (ack: Ack) => any): Promise<Ack> | void {
+        const promise = this.createSendPromise<Ack>('message', event, body);
+        if (typeof callback === 'function') {
+            promise.then((ack: Ack) => {
+                callback(ack);
+            });
+            return;
+        }
+        return promise;
     }
 
 }

@@ -1,22 +1,23 @@
 import http from 'http';
 import https from 'https';
-import { parse as parseUrl } from 'url';
+import { URL } from 'url';
 import { EventEmitter } from 'events';
 import { Socket } from 'net';
 import {
-    MessoPeer,
-    MessoChannel,
+    Peer,
+    Channel,
     IMessoServerOptions,
-    MessoAuthenticationMiddleware,
-    MessoAck,
-    MessoResponse
+    AuthenticationMiddleware,
+    Ack,
+    Response
 } from './';
 
 class MessoServer extends EventEmitter {
 
-    private _channels: Map<string, MessoChannel>;
+    private _channels: Map<string, Channel>;
     private _server: http.Server | https.Server;
     private _port: number;
+    public readonly requestTimeout: number;
 
     constructor(options: IMessoServerOptions) {
         super();
@@ -29,24 +30,26 @@ class MessoServer extends EventEmitter {
                 console.log(`Messo Server Listening on port ${this._port}}`);
             });
         }
-        this._channels = new Map<string, MessoChannel>();
+        this.requestTimeout = options.requestTimeout || 5000;
+        this._channels = new Map<string, Channel>();
         this.handleEvents();
     }
 
     private handleEvents(): void {
         this._server.on('upgrade', async (request: http.IncomingMessage, socket: Socket, head: any) => {
             const requestUrl = request.url ?? ""
-            const channelName: string | null = parseUrl(requestUrl).pathname ?? '/';
+            const URLObject = new URL(requestUrl, 'https://local/');
+            const channelName: string | null = URLObject.pathname ?? '/';
             const channel = this.channel(channelName);
             channel.handle(request, socket, head);
         });
     }
 
-    public channel(name: string): MessoChannel {
-        let channel: MessoChannel | undefined = this._channels.get(name);
+    public channel(name: string): Channel {
+        let channel: Channel | undefined = this._channels.get(name);
         if (channel === undefined) {
-            channel = new MessoChannel(name);
-            channel.on('connection', (peer: MessoPeer) => {
+            channel = new Channel(name);
+            channel.on('connection', (peer: Peer) => {
                 this.emit('connection', peer, channel!.name);
             });
             this._channels.set(name, channel);
@@ -58,12 +61,12 @@ class MessoServer extends EventEmitter {
     public chan = this.channel.bind(this);
     public of = this.channel.bind(this);
 
-    public use(authenticate: MessoAuthenticationMiddleware): this {
+    public use(authenticate: AuthenticationMiddleware): this {
         this.channel('/').use(authenticate);
         return this;
     }
 
-    public request(peerId: string, event: string, body: any): Promise<MessoResponse> {
+    public request(peerId: string, event: string, body: any): Promise<Response> {
         return this.channel('/').request(peerId, event, body);
     }
 
@@ -77,7 +80,7 @@ class MessoServer extends EventEmitter {
         return this;
     }
 
-    public send(peerId: string, event: string, body: any): Promise<MessoAck> {
+    public send(peerId: string, event: string, body: any): Promise<Ack> {
         return this.channel('/').send(peerId, event, body);
     }
 

@@ -1,21 +1,21 @@
 
 import {
     IMessoListener,
-    MessoEventHandler,
-    MessoHandlerParamType,
-    MessoListenerType
+    EventHandler,
+    HandlerParamType,
+    ListenerType
 } from '../';
 
 
-class MessoEventEmitter {
+class EventEmitter {
 
     private _listeners: Map<string, IMessoListener[]> = new Map();
 
-    private createListener<T extends MessoHandlerParamType>(type: MessoListenerType, event: string, handler: MessoEventHandler<T>) {
+    private createListener<T extends HandlerParamType>(type: ListenerType, event: string, handler: EventHandler<T>) {
         const listener: IMessoListener = {
             type,
             event,
-            handler: handler as MessoEventHandler<T>
+            handler: handler as EventHandler<T>
         }
         if (!this._listeners.has(event)) {
             this._listeners.set(event, []);
@@ -24,7 +24,7 @@ class MessoEventEmitter {
         return this;
     }
 
-    protected emit(type: MessoListenerType, event: string, body: any) {
+    protected emit(type: ListenerType, event: string, body: any) {
         const listeners = this._listeners.get(event);
         if (listeners) {
             listeners
@@ -34,7 +34,7 @@ class MessoEventEmitter {
         return this;
     }
 
-    public on<T extends MessoHandlerParamType>(type: MessoListenerType, event: string, handler: MessoEventHandler<T>): this {
+    public on<T extends HandlerParamType>(type: ListenerType, event: string, handler: EventHandler<T>): this {
         switch (type) {
             case "request":
                 return this.onRequest<T>(event, handler);
@@ -45,19 +45,19 @@ class MessoEventEmitter {
         }
     }
 
-    public onRequest<T extends MessoHandlerParamType>(event: string, handler: MessoEventHandler<T>): this {
+    public onRequest<T extends HandlerParamType>(event: string, handler: EventHandler<T>): this {
         return this.createListener<T>('request', event, handler);
     }
 
-    public onMessage<T extends MessoHandlerParamType>(event: string, handler: MessoEventHandler<T>): this {
+    public onMessage<T extends HandlerParamType>(event: string, handler: EventHandler<T>): this {
         return this.createListener<T>('message', event, handler);
     }
 
-    public onEvent<T extends MessoHandlerParamType>(event: string, handler: MessoEventHandler<T>): this {
+    public onEvent<T extends HandlerParamType>(event: string, handler: EventHandler<T>): this {
         return this.createListener('event', event, handler);
     }
 
-    // public off<T extends MessoHandlerParamType>(event?: string, handler?: MessoEventHandler<T>): this {
+    // public off<T extends HandlerParamType>(event?: string, handler?: EventHandler<T>): this {
     //     if (!event) {
     //         this._listeners.forEach((_: IMessoListener[], event: string) => {
     //             this._listeners.delete(event);
@@ -78,4 +78,4 @@ class MessoEventEmitter {
 }
 
 
-export default MessoEventEmitter;
+export default EventEmitter;

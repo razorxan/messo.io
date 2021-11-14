@@ -1,14 +1,14 @@
 
-export { default as MessoChannel } from './MessoChannel';
-export { default as MessoCollection } from './MessoCollection';
-export { default as MessoEventEmitter } from './MessoEventEmitter';
-export { default as MessoMessage } from './MessoMessage';
-export { default as MessoPeer } from './MessoPeer';
-export { default as MessoRequest } from './MessoRequest';
-export { default as MessoResponse } from './MessoResponse';
-export { default as MessoAck } from './MessoAck';
-export { default as MessoRoom } from './MessoRoom';
-export { default as MessoServer } from './MessoServer';
-export { default as MessoSocket } from './MessoSocket';
+export { default as Channel } from './MessoChannel';
+export { default as Collection } from './MessoCollection';
+export { default as EventEmitter } from './MessoEventEmitter';
+export { default as Message } from './MessoMessage';
+export { default as Peer } from './MessoPeer';
+export { default as Request } from './MessoRequest';
+export { default as Response } from './MessoResponse';
+export { default as Ack } from './MessoAck';
+export { default as Room } from './MessoRoom';
+export { default as Server } from './MessoServer';
+export { default as Socket } from './MessoSocket';
 export * from './interfaces';
 export * from './types';

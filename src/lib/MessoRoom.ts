@@ -1,13 +1,13 @@
 import { EventEmitter } from 'events';
-import { MessoChannel, MessoCollection, MessoPeer } from './';
+import { Channel, Collection, Peer } from './';
 
 class MessoRoom extends EventEmitter {
 
     private _id: string;
     private _peerIds: string[];
-    private _channel: MessoChannel;
+    private _channel: Channel;
 
-    constructor(channel: MessoChannel, id: string) {
+    constructor(channel: Channel, id: string) {
         super();
         this._channel = channel;
         this._peerIds = [];
@@ -29,14 +29,14 @@ class MessoRoom extends EventEmitter {
     }
 
     send(event: string, body: any): this {
-        this.peers.each((peer: MessoPeer) => {
+        this.peers.each((peer: Peer) => {
             peer.send(event, body);
         });
         return this;
     }
 
-    get peers(): MessoCollection {
-        return this._channel.peers.filter((peer: MessoPeer): boolean => {
+    get peers(): Collection {
+        return this._channel.peers.filter((peer: Peer): boolean => {
             return this._peerIds.includes(peer.id);
         });
     }

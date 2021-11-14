@@ -1,7 +1,7 @@
 import ws from 'ws';
-import { MessoMessage, IMessoBody } from './';
+import { Message, IMessoBody } from './';
 
-class MessoRequest extends MessoMessage {
+class MessoRequest extends Message {
 
     private _socket: ws;
 

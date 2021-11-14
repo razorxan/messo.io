@@ -63,6 +63,10 @@ class EventEmitter {
 interface MessoBody {
     [propName: string]: any;
 }
+
+interface MessoRequestOption {
+    timeout?: number;
+}
 class MessoMessage {
 
     protected _id: string;
@@ -173,7 +177,7 @@ class MessoClient extends EventEmitter {
         this._promises.delete(id);
     }
 
-    private createSendPromise<T>(type: string, event: string, data: any): Promise<T> {
+    private createSendPromise<T>(type: string, event: string, data: any, options?: MessoRequestOption): Promise<T> {
         const promise: IMessoPromise = {
             reject: () => { },
             resolve: () => { },
@@ -190,15 +194,25 @@ class MessoClient extends EventEmitter {
             });
         });
         this._promises.set(id, promise);
-        return result;
+        return this.createTimeoutPromiseRace<T>(result, options?.timeout || 5000);
     }
+
+    private createTimeoutPromiseRace<T>(promise: Promise<T>, timeout: number): Promise<T> {
+        const timeoutPromise: Promise<T> = new Promise((_, rej) => {
+            setTimeout(() => {
+                rej(new Error(`Request Timeout: exceeded ${timeout} ms`));
+            }, timeout);
+        });
+        return Promise.race([timeoutPromise, promise]);
+    }
+
 
     private sendObject(data: any) {
         this.ws.send(JSON.stringify(data));
     }
 
-    public request(event: string, body?: any): Promise<MessoResponse> {
-        return this.createSendPromise<MessoResponse>('request', event, body);
+    public request(event: string, body?: any, options?: MessoRequestOption): Promise<MessoResponse> {
+        return this.createSendPromise<MessoResponse>('request', event, body, options);
     }
 
     public send(event: string, body?: any): Promise<MessoAck> {

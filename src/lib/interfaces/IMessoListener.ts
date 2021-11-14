@@ -1,7 +1,7 @@
-import { MessoEventHandler, MessoListenerType, MessoHandlerParamType } from '../';
+import { EventHandler, ListenerType } from '../';
 
-export default interface MessoListener {
-    type: MessoListenerType;
+export default interface Listener {
+    type: ListenerType;
     event: string;
-    handler: MessoEventHandler<any>;
+    handler: EventHandler<any>;
 }

@@ -168,7 +168,7 @@ var MessoClient = /** @class */ (function (_super) {
         response.resolve(new MessoResponse(id, event, body));
         this._promises["delete"](id);
     };
-    MessoClient.prototype.createSendPromise = function (type, event, data) {
+    MessoClient.prototype.createSendPromise = function (type, event, data, options) {
         var _this = this;
         var promise = {
             reject: function () { },
@@ -186,13 +186,21 @@ var MessoClient = /** @class */ (function (_super) {
             });
         });
         this._promises.set(id, promise);
-        return result;
+        return this.createTimeoutPromiseRace(result, (options === null || options === void 0 ? void 0 : options.timeout) || 5000);
+    };
+    MessoClient.prototype.createTimeoutPromiseRace = function (promise, timeout) {
+        var timeoutPromise = new Promise(function (_, rej) {
+            setTimeout(function () {
+                rej(new Error("Request Timeout: exceeded " + timeout + " ms"));
+            }, timeout);
+        });
+        return Promise.race([timeoutPromise, promise]);
     };
     MessoClient.prototype.sendObject = function (data) {
         this.ws.send(JSON.stringify(data));
     };
-    MessoClient.prototype.request = function (event, body) {
-        return this.createSendPromise('request', event, body);
+    MessoClient.prototype.request = function (event, body, options) {
+        return this.createSendPromise('request', event, body, options);
     };
     MessoClient.prototype.send = function (event, body) {
         return this.createSendPromise('message', event, body);

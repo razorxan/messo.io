@@ -7,28 +7,28 @@ import querystring from 'querystring';
 import ws from 'ws';
 import {
     IMessoMeta,
-    MessoRoom,
-    MessoPeer,
-    MessoCollection,
-    MessoAuthenticationMiddleware,
-    MessoAck,
-    MessoResponse
+    Room,
+    Peer,
+    Collection,
+    AuthenticationMiddleware,
+    Ack,
+    Response,
 } from './';
 
 class MessoChannel extends EventEmitter {
 
     private _server: ws.Server;
     private _name: string;
-    private _peers: MessoCollection;
-    private _rooms: Map<string, MessoRoom>;
-    private _authenticate: MessoAuthenticationMiddleware;
+    private _peers: Collection;
+    private _rooms: Map<string, Room>;
+    private _authenticate: AuthenticationMiddleware;
 
     constructor(name: string = '/') {
         super();
         this._server = new ws.Server({ noServer: true });
         this._name = name;
-        this._peers = new MessoCollection();
-        this._rooms = new Map<string, MessoRoom>();
+        this._peers = new Collection();
+        this._rooms = new Map<string, Room>();
         this._authenticate = async () => ({ meta: {}, peer: () => false });
     }
 
@@ -36,7 +36,7 @@ class MessoChannel extends EventEmitter {
         return this._name;
     }
 
-    public use(authenticate: MessoAuthenticationMiddleware): this {
+    public use(authenticate: AuthenticationMiddleware): this {
         this._authenticate = authenticate;
         return this;
     }
@@ -67,7 +67,7 @@ class MessoChannel extends EventEmitter {
             try {
                 const result: IMessoMeta = await this._authenticate(query, headers, cookies);
                 this._server.handleUpgrade(request, socket, head, (ws: ws) => {
-                    const peer = new MessoPeer(this, ws, result);
+                    const peer = new Peer(this, ws, result);
                     peer.on('event', 'close', (_: any) => {
                         this._peers.delete(peer.id);
                     });
@@ -86,17 +86,17 @@ class MessoChannel extends EventEmitter {
         }
     }
 
-    public peer(id: string): MessoPeer | undefined {
+    public peer(id: string): Peer | undefined {
         return this._peers.get(id);
     }
 
-    request(peerId: string, event: string, body: any): Promise<MessoResponse> {
+    request(peerId: string, event: string, body: any): Promise<Response> {
         const peer = this._peers.get(peerId);
         if (!peer) throw new Error(`Cannot send request to peer with id ${peerId} does not exist.`);
         return peer.request(event, body)
     }
 
-    send(peerId: string, event: string, data: any): Promise<MessoAck> {
+    send(peerId: string, event: string, data: any): Promise<Ack> {
         const peer = this._peers.get(peerId);
         if (!peer) throw new Error(`Cannot send to peer with id ${peerId} does not exist.`);
         return peer.send(event, data);
@@ -104,7 +104,7 @@ class MessoChannel extends EventEmitter {
 
     join(peerId: string, roomId: string): this {
         if (!this._peers.has(peerId)) throw new Error(`Cannot join. Peer with id ${peerId} does not exist.`);
-        const room: MessoRoom = this._rooms.has(roomId) ? this._rooms.get(roomId)! : new MessoRoom(this, roomId);
+        const room: Room = this._rooms.has(roomId) ? this._rooms.get(roomId)! : new Room(this, roomId);
         room.addPeerId(peerId);
         return this;
     }
@@ -112,7 +112,7 @@ class MessoChannel extends EventEmitter {
     leave(peerId: string, roomId: string): this {
         if (!this._peers.has(peerId)) throw new Error(`Cannot leave room ${roomId}. Peer with id ${peerId} does not exist.`);
         if (!this._rooms.has(roomId)) throw new Error(`Cannot leave room with id ${roomId}. The room does not exist`);
-        const room: MessoRoom = this._rooms.get(roomId)!;
+        const room: Room = this._rooms.get(roomId)!;
         room.removePeerId(peerId);
         if (room.empty) this._rooms.delete(roomId);
         return this;
@@ -131,7 +131,7 @@ class MessoChannel extends EventEmitter {
         throw new Error(`Cannnot send to room with id ${room}. The room does not exists.`)
     }
 
-    get peers(): MessoCollection {
+    get peers(): Collection {
         return this._peers;
     }
 
