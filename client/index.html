@@ -11,7 +11,7 @@
     <script src="MessoClient.js"></script>
     <script>
 
-        const messo = new MessoClient('ws://localhost:3030/?token=ciao&ciao=nno')
+        const messo = new MessoClient('ws://127.0.0.1:8080/?token=ciao&ciao=nno')
 
         messo.on('connection', async () => {
             console.log("connected");

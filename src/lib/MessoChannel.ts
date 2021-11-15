@@ -2,8 +2,6 @@
 import http from 'http';
 import { Socket } from 'net';
 import { EventEmitter } from 'events';
-import { parse as parseUrl } from 'url';
-import querystring from 'querystring';
 import ws from 'ws';
 import {
     IMessoMeta,
@@ -58,9 +56,12 @@ class MessoChannel extends EventEmitter {
 
     public async handle(request: http.IncomingMessage, socket: Socket, head: any): Promise<void> {
         const requestUrl: string = request.url ?? "";
-        const qs = parseUrl(requestUrl).query;
-        let query: querystring.ParsedUrlQuery = {};
-        if (qs) query = querystring.parse(qs);
+        const uri: URL = new URL(requestUrl, `http://${request.headers.host}`);
+        const searchParams: URLSearchParams = uri.searchParams;
+        const query: any = {};
+        searchParams.forEach((value: string, key: string) => {
+            query[key] = value;
+        });
         const headers = request.headers;
         const cookies = this.parseCookies(request);
         try {

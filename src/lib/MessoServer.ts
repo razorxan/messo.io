@@ -6,10 +6,10 @@ import { Socket } from 'net';
 import {
     Peer,
     Channel,
-    IMessoServerOptions,
     AuthenticationMiddleware,
     Ack,
-    Response
+    Response,
+    IMessoServerOptions,
 } from './';
 
 class MessoServer extends EventEmitter {
@@ -37,9 +37,9 @@ class MessoServer extends EventEmitter {
 
     private handleEvents(): void {
         this._server.on('upgrade', async (request: http.IncomingMessage, socket: Socket, head: any) => {
-            const requestUrl = request.url ?? ""
-            const URLObject = new URL(requestUrl, 'https://local/');
-            const channelName: string | null = URLObject.pathname ?? '/';
+            const requestUrl = request.url ?? "";
+            const uri: URL = new URL(requestUrl, `http://${request.headers.host}`);
+            const channelName: string | null = uri.pathname ?? '/';
             const channel = this.channel(channelName);
             channel.handle(request, socket, head);
         });
@@ -54,7 +54,6 @@ class MessoServer extends EventEmitter {
             });
             this._channels.set(name, channel);
         }
-
         return channel;
     }
 

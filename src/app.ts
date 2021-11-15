@@ -12,13 +12,16 @@ import { Event } from './lib';
 
 const server = new http.Server()
 
-server.listen(3030, () => {
-    console.log("listening on port 3030")
+server.listen(8080, () => {
+    console.log("listening on port 8080")
 });
 
 const ms: Server = new Server({
-    server: server
+    server
 });
+
+
+
 ms.use(async (query: ParsedUrlQuery, headers: http.IncomingHttpHeaders, cookies: any) => {
     return {
         qualcosa: 'a'
