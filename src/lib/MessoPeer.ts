@@ -43,10 +43,11 @@ class MessoPeer extends EventEmitter {
         this._socket.on('close', () => {
             this.emit('event', 'close', null);
         });
-        this._socket.on('message', (e: ws.Data) => {
-            if (typeof e !== 'string') return;
+        this._socket.on('message', (e: ws.Data, binary: boolean) => {
+            if (binary) return;
+            const message = e.toString();
             try {
-                const { type, id, event, data }: { type: string, id: string, event: string, data: any } = JSON.parse(e);
+                const { type, id, event, data }: { type: string, id: string, event: string, data: any } = JSON.parse(message);
                 switch (type) {
                     case 'request':
                         this.handleRequestEvent(id, event, data);

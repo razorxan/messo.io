@@ -39,7 +39,7 @@ class MessoServer extends EventEmitter {
         this._server.on('upgrade', async (request: http.IncomingMessage, socket: Socket, head: any) => {
             const requestUrl = request.url ?? "";
             const uri: URL = new URL(requestUrl, `http://${request.headers.host}`);
-            const channelName: string | null = uri.pathname ?? '/';
+            const channelName: string = uri.pathname ?? '/';
             const channel = this.channel(channelName);
             channel.handle(request, socket, head);
         });
