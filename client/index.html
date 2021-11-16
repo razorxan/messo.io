@@ -11,7 +11,7 @@
     <script src="MessoClient.js"></script>
     <script>
 
-        const messo = new MessoClient('ws://127.0.0.1:8080/?token=ciao&ciao=nno')
+        const messo = new MessoClient('ws://127.0.0.1:8080/?token=ciao&ciao=nno', { requestTimeout: 10000 })
 
         messo.on('connection', async () => {
             console.log("connected");
@@ -19,7 +19,7 @@
                 console.log("sent to server");
             });
             messo.on('request', (request) => {
-                console.log("request", request.body());
+                console.log("request", request.body(), request);
                 request.respond({ type: "response", from: "client" });
             });
             messo.on("message", (message) => {
@@ -32,6 +32,10 @@
             messo.request('ciao', { type: 'request', from: "client" }, () => {
 
             });
+
+            // messo.on('routercapabilities', (request) => {
+            //     request.reject('grave errore baby');
+            // });
 
         });
 

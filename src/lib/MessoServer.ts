@@ -48,7 +48,7 @@ class MessoServer extends EventEmitter {
     public channel(name: string): Channel {
         let channel: Channel | undefined = this._channels.get(name);
         if (channel === undefined) {
-            channel = new Channel(name);
+            channel = new Channel(name, { requestTimeout: this.requestTimeout });
             channel.on('connection', (peer: Peer) => {
                 this.emit('connection', peer, channel!.name);
             });

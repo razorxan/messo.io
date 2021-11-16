@@ -108,17 +108,27 @@ var MessoRequest = /** @class */ (function (_super) {
             data: payload
         }));
     };
+    MessoRequest.prototype.reject = function (error) {
+        this._socket.send(JSON.stringify({
+            type: "response",
+            id: this._id,
+            event: this._event,
+            data: null,
+            error: error
+        }));
+    };
     return MessoRequest;
 }(MessoMessage));
 var MessoClient = /** @class */ (function (_super) {
     __extends(MessoClient, _super);
-    function MessoClient(url) {
+    function MessoClient(url, options) {
         if (url === void 0) { url = '/'; }
         var _this = _super.call(this) || this;
         _this.url = url;
         _this.ws = new WebSocket(_this.url);
         _this._promises = new Map();
         _this.initHandlers();
+        _this._requestTimeout = options === null || options === void 0 ? void 0 : options.requestTimeout;
         return _this;
     }
     MessoClient.prototype.initHandlers = function () {
@@ -127,10 +137,10 @@ var MessoClient = /** @class */ (function (_super) {
             _this.emit("connection");
         });
         this.ws.addEventListener("message", function (e) {
-            var _a = JSON.parse(e.data), type = _a.type, id = _a.id, event = _a.event, data = _a.data;
+            var _a = JSON.parse(e.data), type = _a.type, id = _a.id, event = _a.event, data = _a.data, error = _a.error;
             switch (type) {
                 case 'response':
-                    _this.handlResponse(id, event, data);
+                    _this.handlResponse(id, event, data, error);
                     break;
                 case 'request':
                     _this.handleRequest(id, event, data);
@@ -153,7 +163,7 @@ var MessoClient = /** @class */ (function (_super) {
         }));
         this.emit(event, new MessoMessage(id, event, body));
     };
-    MessoClient.prototype.handleAck = function (id, event, body) {
+    MessoClient.prototype.handleAck = function (id, event, body, error) {
         var promise = this._promises.get(id);
         if (!promise)
             throw new Error('Could not find an response object suitable for the ack.');
@@ -163,9 +173,12 @@ var MessoClient = /** @class */ (function (_super) {
     MessoClient.prototype.handleRequest = function (id, event, body) {
         this.emit(event, new MessoRequest(id, event, body, this.ws));
     };
-    MessoClient.prototype.handlResponse = function (id, event, body) {
-        var response = this._promises.get(id);
-        response.resolve(new MessoResponse(id, event, body));
+    MessoClient.prototype.handlResponse = function (id, event, body, error) {
+        var promise = this._promises.get(id);
+        if (error)
+            promise.reject(error);
+        else
+            promise.resolve(new MessoResponse(id, event, body));
         this._promises["delete"](id);
     };
     MessoClient.prototype.createSendPromise = function (type, event, data, options) {
@@ -186,9 +199,11 @@ var MessoClient = /** @class */ (function (_super) {
             });
         });
         this._promises.set(id, promise);
-        return this.createTimeoutPromiseRace(result, (options === null || options === void 0 ? void 0 : options.timeout) || 5000);
+        return this.createTimeoutPromiseRace(result, (options === null || options === void 0 ? void 0 : options.timeout) || this._requestTimeout);
     };
     MessoClient.prototype.createTimeoutPromiseRace = function (promise, timeout) {
+        if (!timeout)
+            return promise;
         var timeoutPromise = new Promise(function (_, rej) {
             setTimeout(function () {
                 rej(new Error("Request Timeout: exceeded " + timeout + " ms"));

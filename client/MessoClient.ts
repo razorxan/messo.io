@@ -111,19 +111,35 @@ class MessoRequest extends MessoMessage {
         }));
     }
 
+    public reject(error: any) {
+        this._socket.send(JSON.stringify({
+            type: "response",
+            id: this._id,
+            event: this._event,
+            data: null,
+            error,
+        }));
+    }
+
+}
+
+interface MessoClientOptions {
+    requestTimeout?: number;
 }
 
 class MessoClient extends EventEmitter {
     private url: string;
     private ws: WebSocket;
     private _promises: Map<any, any>;
+    private readonly _requestTimeout: number;
 
-    constructor(url: string = '/') {
+    constructor(url: string = '/', options?: MessoClientOptions) {
         super();
         this.url = url;
         this.ws = new WebSocket(this.url);
         this._promises = new Map();
         this.initHandlers();
+        this._requestTimeout = options?.requestTimeout;
     }
 
     private initHandlers() {
@@ -131,11 +147,10 @@ class MessoClient extends EventEmitter {
             this.emit("connection");
         });
         this.ws.addEventListener("message", (e: MessageEvent) => {
-            const { type, id, event, data }: { type: string, id: string, event: string, data: any } = JSON.parse(e.data);
-
+            const { type, id, event, data, error }: { type: string, id: string, event: string, data: any, error?: any } = JSON.parse(e.data);
             switch (type) {
                 case 'response':
-                    this.handlResponse(id, event, data);
+                    this.handlResponse(id, event, data, error);
                     break;
                 case 'request':
                     this.handleRequest(id, event, data);
@@ -160,7 +175,7 @@ class MessoClient extends EventEmitter {
         this.emit(event, new MessoMessage(id, event, body));
     }
 
-    private handleAck(id: string, event: string, body: any) {
+    private handleAck(id: string, event: string, body: any, error?: Error) {
         const promise = this._promises.get(id);
         if (!promise) throw new Error('Could not find an response object suitable for the ack.');
         promise.resolve(new MessoAck(id, event, body));
@@ -171,9 +186,10 @@ class MessoClient extends EventEmitter {
         this.emit(event, new MessoRequest(id, event, body, this.ws));
     }
 
-    private handlResponse(id: string, event: string, body: any) {
-        const response = this._promises.get(id);
-        response.resolve(new MessoResponse(id, event, body));
+    private handlResponse(id: string, event: string, body: any, error?: Error) {
+        const promise = this._promises.get(id);
+        if (error) promise.reject(error);
+        else promise.resolve(new MessoResponse(id, event, body));
         this._promises.delete(id);
     }
 
@@ -194,10 +210,11 @@ class MessoClient extends EventEmitter {
             });
         });
         this._promises.set(id, promise);
-        return this.createTimeoutPromiseRace<T>(result, options?.timeout || 5000);
+        return this.createTimeoutPromiseRace<T>(result, options?.timeout || this._requestTimeout);
     }
 
-    private createTimeoutPromiseRace<T>(promise: Promise<T>, timeout: number): Promise<T> {
+    private createTimeoutPromiseRace<T>(promise: Promise<T>, timeout?: number): Promise<T> {
+        if (!timeout) return promise;
         const timeoutPromise: Promise<T> = new Promise((_, rej) => {
             setTimeout(() => {
                 rej(new Error(`Request Timeout: exceeded ${timeout} ms`));
@@ -205,7 +222,6 @@ class MessoClient extends EventEmitter {
         });
         return Promise.race([timeoutPromise, promise]);
     }
-
 
     private sendObject(data: any) {
         this.ws.send(JSON.stringify(data));

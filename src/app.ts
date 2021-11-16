@@ -17,7 +17,8 @@ server.listen(8080, () => {
 });
 
 const ms: Server = new Server({
-    server
+    server,
+    requestTimeout: 300,
 });
 
 
@@ -57,5 +58,15 @@ ms.on('connection', async (messo: Peer) => {
     messo.on<Event>('event', 'close', () => {
         console.log('close');
     });
+
+    messo.request('request').then((response: Response) => {
+        console.log(response.body())
+    })
+
+    messo.request('routercapabilities', null, { timeout: 5000 }).then((response: Response) => {
+        console.log(response.body());
+    }).catch((error: Error) => {
+        console.log({ error });
+    })
 
 });

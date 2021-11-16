@@ -24,7 +24,7 @@ class MessoMessage {
     }
 
     get event(): string {
-        return this.event;
+        return this._event;
     }
 
 }

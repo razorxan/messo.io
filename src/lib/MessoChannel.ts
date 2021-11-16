@@ -1,6 +1,6 @@
 
 import http from 'http';
-import { Socket } from 'net';
+import { Socket as Sock } from 'net';
 import { EventEmitter } from 'events';
 import ws from 'ws';
 import {
@@ -11,6 +11,8 @@ import {
     AuthenticationMiddleware,
     Ack,
     Response,
+    Socket,
+    IMessoChannelOptions
 } from './';
 
 class MessoChannel extends EventEmitter {
@@ -20,14 +22,16 @@ class MessoChannel extends EventEmitter {
     private _peers: Collection;
     private _rooms: Map<string, Room>;
     private _authenticate: AuthenticationMiddleware;
+    public readonly _requestTimeout: number | undefined;
 
-    constructor(name: string = '/') {
+    constructor(name: string = '/', options: IMessoChannelOptions) {
         super();
         this._server = new ws.Server({ noServer: true });
         this._name = name;
         this._peers = new Collection();
         this._rooms = new Map<string, Room>();
         this._authenticate = async () => ({ meta: {}, peer: () => false });
+        this._requestTimeout = options.requestTimeout;
     }
 
     get name(): string {
@@ -54,7 +58,7 @@ class MessoChannel extends EventEmitter {
         return list;
     }
 
-    public async handle(request: http.IncomingMessage, socket: Socket, head: any): Promise<void> {
+    public async handle(request: http.IncomingMessage, socket: Sock, head: any): Promise<void> {
         const requestUrl: string = request.url ?? "";
         const uri: URL = new URL(requestUrl, `http://${request.headers.host}`);
         const searchParams: URLSearchParams = uri.searchParams;
@@ -68,7 +72,7 @@ class MessoChannel extends EventEmitter {
             try {
                 const result: IMessoMeta = await this._authenticate(query, headers, cookies);
                 this._server.handleUpgrade(request, socket, head, (ws: ws) => {
-                    const peer = new Peer(this, ws, result);
+                    const peer = new Peer(this, new Socket(ws), result);
                     peer.on('event', 'close', (_: any) => {
                         this._peers.delete(peer.id);
                     });
@@ -76,7 +80,6 @@ class MessoChannel extends EventEmitter {
                     this.emit('connection', peer);
                 });
             } catch (error) {
-                console.log(error);
                 this._server.handleUpgrade(request, socket, head, (ws: ws) => {
                     ws.close(400);
                 });

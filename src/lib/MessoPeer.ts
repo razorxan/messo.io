@@ -1,4 +1,3 @@
-import ws from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import {
     Request,
@@ -11,20 +10,18 @@ import {
     IMessoPromise,
     IMessoRequestOptions,
 } from '.';
+import MessoSocket from './MessoSocket';
 
-//TODO: refactor this with MessoSocket and fix private members, getters and setters
-//TODO: impelement aks for type message
 class MessoPeer extends EventEmitter {
 
     private _id: string;
     private _promises: Map<string, IMessoPromise>;
 
-    constructor(private _channel: Channel, private _socket: ws, private _meta: IMessoMeta = {}) {
+    constructor(private _channel: Channel, private _socket: MessoSocket, private _meta: IMessoMeta = {}) {
         super();
         this._promises = new Map<string, IMessoPromise>();
         this._id = uuidv4();
         this.initSocketHandler();
-
     }
 
     public get(key: string) {
@@ -35,7 +32,7 @@ class MessoPeer extends EventEmitter {
         return this._id;
     }
 
-    public get socket(): ws {
+    public get socket(): MessoSocket {
         return this._socket;
     }
 
@@ -43,29 +40,10 @@ class MessoPeer extends EventEmitter {
         this._socket.on('close', () => {
             this.emit('event', 'close', null);
         });
-        this._socket.on('message', (e: ws.Data, binary: boolean) => {
-            if (binary) return;
-            const message = e.toString();
-            try {
-                const { type, id, event, data }: { type: string, id: string, event: string, data: any } = JSON.parse(message);
-                switch (type) {
-                    case 'request':
-                        this.handleRequestEvent(id, event, data);
-                        break;
-                    case 'response':
-                        this.handlResponseEvent(id, event, data);
-                        break;
-                    case 'message':
-                        this.handleMessageEvent(id, event, data);
-                        break;
-                    case 'ack':
-                        this.handleAckEvent(id, event, data);
-                        break;
-                }
-            } catch (error) {
-                throw new Error(error);
-            }
-        });
+        this._socket.on('request', this.handleRequestEvent.bind(this));
+        this._socket.on('response', this.handleResponseEvent.bind(this));
+        this._socket.on('message', this.handleMessageEvent.bind(this));
+        this._socket.on('ack', this.handleAckEvent.bind(this));
     }
 
     private handleRequestEvent(id: string, event: string, data: any) {
@@ -73,7 +51,7 @@ class MessoPeer extends EventEmitter {
     }
 
     private handleMessageEvent(id: string, event: string, data: any) {
-        this.sendObject({
+        this._socket.send({
             type: 'ack',
             id,
             event,
@@ -82,10 +60,11 @@ class MessoPeer extends EventEmitter {
         this.emit('message', event, new Message(id, event, data));
     }
 
-    private handlResponseEvent(id: string, event: string, data: any) {
+    private handleResponseEvent(id: string, event: string, data: any, error?: any) {
         const promise = this._promises.get(id);
         if (!promise) throw new Error('Could not find an response object suitable for the request.');
-        promise.resolve(new Response(id, event, data));
+        if (error) promise.reject(error);
+        else promise.resolve(new Response(id, event, data));
         this._promises.delete(id);
     }
 
@@ -105,7 +84,7 @@ class MessoPeer extends EventEmitter {
         const result: Promise<T> = new Promise((res, rej) => {
             promise.resolve = res;
             promise.reject = rej;
-            this.sendObject({
+            this._socket.send({
                 type,
                 id,
                 event,
@@ -113,20 +92,17 @@ class MessoPeer extends EventEmitter {
             });
         });
         this._promises.set(id, promise);
-        return this.createTimeoutPromiseRace<T>(result, options?.timeout || 5000);
+        return this.createTimeoutPromiseRace<T>(result, options?.timeout || this._channel._requestTimeout);
     }
 
-    private createTimeoutPromiseRace<T>(promise: Promise<T>, timeout: number): Promise<T> {
+    private createTimeoutPromiseRace<T>(promise: Promise<T>, timeout: number | undefined): Promise<T> {
+        if (!timeout) return promise;
         const timeoutPromise: Promise<T> = new Promise((_, rej) => {
             setTimeout(() => {
                 rej(new Error(`Request Timeout: exceeded ${timeout} ms`));
             }, timeout);
         });
         return Promise.race([timeoutPromise, promise]);
-    }
-
-    private sendObject(data: any) {
-        this._socket.send(JSON.stringify(data));
     }
 
     public join(roomId: string): this {
@@ -139,21 +115,29 @@ class MessoPeer extends EventEmitter {
         return this;
     }
 
-    public request(event: string, body: any, options?: IMessoRequestOptions): Promise<Response> {
+    public request(event: string, body?: any, options?: IMessoRequestOptions): Promise<Response> {
         return this.createSendPromise<Response>('request', event, body, options);
     }
 
+    public send(event: string): Promise<Ack>;
     public send(event: string, body: any): Promise<Ack>;
     public send(event: string, body: any, callback: (ack: Ack) => any): void;
-    public send(event: string, body: any, callback?: (ack: Ack) => any): Promise<Ack> | void {
-        const promise = this.createSendPromise<Ack>('message', event, body);
-        if (typeof callback === 'function') {
-            promise.then((ack: Ack) => {
-                callback(ack);
-            });
-            return;
+    public send(event: string, callback: (ack: Ack) => any): void;
+    public send(event: string, body?: any, callback?: (ack: Ack) => any): Promise<Ack> | void {
+        if (typeof body === 'function') {
+            const promise = this.createSendPromise<Ack>('message', event, null);
+            promise.then((ack: Ack) => body(ack));
+            return
+        } else {
+            const promise = this.createSendPromise<Ack>('message', event, body);
+            if (typeof callback === 'function') {
+                promise.then((ack: Ack) => {
+                    callback(ack);
+                });
+                return;
+            }
+            return promise;
         }
-        return promise;
     }
 
 }
