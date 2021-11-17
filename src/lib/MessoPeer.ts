@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import {
     Request,
     Response,
@@ -20,7 +20,7 @@ class MessoPeer extends EventEmitter {
     constructor(private _channel: Channel, private _socket: MessoSocket, private _meta: IMessoMeta = {}) {
         super();
         this._promises = new Map<string, IMessoPromise>();
-        this._id = uuidv4();
+        this._id = randomUUID();
         this.initSocketHandler();
     }
 
@@ -80,7 +80,7 @@ class MessoPeer extends EventEmitter {
             reject: () => { },
             resolve: () => { },
         };
-        const id = uuidv4();
+        const id = randomUUID();
         const result: Promise<T> = new Promise((res, rej) => {
             promise.resolve = res;
             promise.reject = rej;

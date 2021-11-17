@@ -10,11 +10,9 @@
     "start": "tsc && node dist/app.js"
   },
   "dependencies": {
-    "uuid": "^8.3.2",
     "ws": "^8.2.3"
   },
   "devDependencies": {
-    "@types/uuid": "^8.3.1",
     "@types/ws": "^8.2.0",
     "ts-node": "^10.4.0",
     "typescript": "^3.9.10"
