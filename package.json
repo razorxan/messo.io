@@ -10,7 +10,7 @@
     "start": "tsc && node dist/app.js"
   },
   "dependencies": {
-    "ws": "^8.2.3"
+    "ws": "^8.17.1"
   },
   "devDependencies": {
     "@types/ws": "^8.2.0",
