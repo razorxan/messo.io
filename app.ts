@@ -6,9 +6,9 @@ import {
     Server,
     Peer,
     Message,
-    Ack
-} from './';
-import { Event } from './lib';
+    Ack,
+    Event,
+} from './dist/server/index.ts';
 
 const server = new http.Server()
 
@@ -20,8 +20,6 @@ const ms: Server = new Server({
     server,
     requestTimeout: 300,
 });
-
-
 
 ms.use(async (query: ParsedUrlQuery, headers: http.IncomingHttpHeaders, cookies: any) => {
     return {

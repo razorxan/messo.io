@@ -2,19 +2,46 @@
   "name": "messo.io",
   "version": "1.0.0",
   "description": "Lightweight Signiling Library for Javascript and Typescript",
-  "main": "index.js",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "module": "./dist/index.mjs",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./client": {
+      "module": "./dist/client/index.mjs",
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.mjs",
+      "require": "./dist/client/index.js"
+    },
+    "./server": {
+      "module": "./dist/server/index.mjs",
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.mjs",
+      "require": "./dist/server/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "author": "Emilio Carrino",
   "license": "MIT",
   "scripts": {
-    "dev": "ts-node src/app.ts",
-    "start": "tsc && node dist/app.js"
+    "build": "tsup",
+    "dev": "ts-node app.ts",
+    "start": "npm run build && npm run dev"
   },
   "dependencies": {
-    "ws": "^8.2.3"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@types/ws": "^8.2.0",
-    "ts-node": "^10.4.0",
-    "typescript": "^3.9.10"
+    "@types/ws": "^8.5.13",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
   }
 }

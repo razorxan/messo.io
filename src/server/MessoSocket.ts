@@ -23,7 +23,7 @@ class MessoSocket extends EventEmitter {
             try {
                 const { type, id, event, data, error }: { type: string, id: string, event: string, data: any, error?: any } = JSON.parse(message);
                 this.emit(type, id, event, data, error);
-            } catch (error) {
+            } catch (error: any) {
                 throw new Error(error);
             }
         });

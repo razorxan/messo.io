@@ -4,7 +4,7 @@ import {
     EventHandler,
     HandlerParamType,
     ListenerType
-} from '../';
+} from './';
 
 
 class EventEmitter {

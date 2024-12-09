@@ -1,4 +1,4 @@
-import IMessoBody from './interfaces/IMessoBody';
+import IMessoBody from '../shared/interfaces/IMessoBody';
 
 class MessoMessage {
 

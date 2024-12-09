@@ -23,6 +23,11 @@ class MessoServer extends EventEmitter {
         super();
         if (options.server) {
             this._server = options.server;
+            const address = options.server.address();
+            if (typeof address === 'object' && address !== null) {
+                this._port = address.port;
+            }
+            throw new Error("Cannot get listeing port on provided server");
         } else {
             this._port = options.port || 3000;
             this._server = new http.Server();
