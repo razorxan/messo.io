@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import ws from 'ws';
 
-class MessoSocket extends EventEmitter {
+class Socket extends EventEmitter {
 
     private _socket: ws;
     private _meta: any;
@@ -24,7 +24,7 @@ class MessoSocket extends EventEmitter {
                 const { type, id, event, data, error }: { type: string, id: string, event: string, data: any, error?: any } = JSON.parse(message);
                 this.emit(type, id, event, data, error);
             } catch (error: any) {
-                throw new Error(error);
+                console.log(`Cannot parse message because of error ${e}`);
             }
         });
     }
@@ -63,4 +63,4 @@ class MessoSocket extends EventEmitter {
 
 }
 
-export default MessoSocket;
+export default Socket;

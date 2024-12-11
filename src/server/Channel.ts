@@ -1,21 +1,19 @@
 
 import http from 'http';
-import { Socket as Sock } from 'net';
-import { EventEmitter } from 'events';
+import { Socket as NetSocket } from 'net';
 import ws from 'ws';
-import {
-    IMessoMeta,
-    Room,
-    Peer,
-    Collection,
-    AuthenticationMiddleware,
-    Ack,
-    Response,
-    Socket,
-    IMessoChannelOptions
-} from './';
+import { EventEmitter } from 'events';
+import Room from './Room'
+import Peer from './Peer';
+import Collection from './Collection';
+import Socket from './Socket';
+import Meta from './interfaces/Meta';
+import ChannelOptions from './interfaces/ChannelOptions';
+import Ack from '../shared/Ack';
+import Response from '../shared/Response';
+import { AuthenticationMiddleware } from './types'
 
-class MessoChannel extends EventEmitter {
+class Channel extends EventEmitter {
 
     private _server: ws.Server;
     private _name: string;
@@ -24,7 +22,7 @@ class MessoChannel extends EventEmitter {
     private _authenticate: AuthenticationMiddleware;
     public readonly _requestTimeout: number | undefined;
 
-    constructor(name: string = '/', options: IMessoChannelOptions) {
+    constructor(name: string = '/', options: ChannelOptions) {
         super();
         this._server = new ws.Server({ noServer: true });
         this._name = name;
@@ -58,7 +56,7 @@ class MessoChannel extends EventEmitter {
         return list;
     }
 
-    public async handle(request: http.IncomingMessage, socket: Sock, head: any): Promise<void> {
+    public async handle(request: http.IncomingMessage, socket: NetSocket, head: any): Promise<void> {
         const requestUrl: string = request.url ?? "";
         const uri: URL = new URL(requestUrl, `http://${request.headers.host}`);
         const searchParams: URLSearchParams = uri.searchParams;
@@ -70,10 +68,10 @@ class MessoChannel extends EventEmitter {
         const cookies = this.parseCookies(request);
         try {
             try {
-                const result: IMessoMeta = await this._authenticate(query, headers, cookies);
+                const result: Meta = await this._authenticate(query, headers, cookies);
                 this._server.handleUpgrade(request, socket, head, (ws: ws) => {
                     const peer = new Peer(this, new Socket(ws), result);
-                    peer.on('event', 'close', (_: any) => {
+                    peer.on('event:close', (_: any) => {
                         this._peers.delete(peer.id);
                     });
                     this._peers.push(peer);
@@ -141,4 +139,4 @@ class MessoChannel extends EventEmitter {
 
 }
 
-export default MessoChannel;
+export default Channel;

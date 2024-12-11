@@ -1,25 +1,23 @@
 import { randomUUID } from 'crypto';
-import {
-    Request,
-    Response,
-    Ack,
-    Channel,
-    EventEmitter,
-    Message,
-    IMessoMeta,
-    IMessoPromise,
-    IMessoRequestOptions,
-} from '.';
-import MessoSocket from './MessoSocket';
+import PeerEventEmitter from './PeerEventEmitter';
+import Request from './Request'
+import Channel from './Channel';
+import Socket from './Socket';
+import Response from '../shared/Response';
+import Ack from '../shared/Ack';
+import Meta from './interfaces/Meta';
+import Message from '../shared/Message';
+import RequestPromise from '../shared/interfaces/RequestPromise';
+import RequestOptions from '../shared/interfaces/RequestOptions';
 
-class MessoPeer extends EventEmitter {
+class MessoPeer extends PeerEventEmitter {
 
     private _id: string;
-    private _promises: Map<string, IMessoPromise>;
+    private _promises: Map<string, RequestPromise>;
 
-    constructor(private _channel: Channel, private _socket: MessoSocket, private _meta: IMessoMeta = {}) {
+    constructor(private _channel: Channel, private _socket: Socket, private _meta: Meta = {}) {
         super();
-        this._promises = new Map<string, IMessoPromise>();
+        this._promises = new Map<string, RequestPromise>();
         this._id = randomUUID();
         this.initSocketHandler();
     }
@@ -32,7 +30,7 @@ class MessoPeer extends EventEmitter {
         return this._id;
     }
 
-    public get socket(): MessoSocket {
+    public get socket(): Socket {
         return this._socket;
     }
 
@@ -75,8 +73,8 @@ class MessoPeer extends EventEmitter {
         this._promises.delete(id);
     }
 
-    private createSendPromise<T>(type: string, event: string, data: any, options?: IMessoRequestOptions): Promise<T> {
-        const promise: IMessoPromise = {
+    private createSendPromise<T>(type: string, event: string, data: any, options?: RequestOptions): Promise<T> {
+        const promise: RequestPromise = {
             reject: () => { },
             resolve: () => { },
         };
@@ -115,7 +113,7 @@ class MessoPeer extends EventEmitter {
         return this;
     }
 
-    public request(event: string, body?: any, options?: IMessoRequestOptions): Promise<Response> {
+    public request(event: string, body?: any, options?: RequestOptions): Promise<Response> {
         return this.createSendPromise<Response>('request', event, body, options);
     }
 

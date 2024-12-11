@@ -1,10 +1,13 @@
-import { Message, IMessoBody, Socket } from './';
 
-class MessoRequest extends Message {
+import Message from '../shared/Message'
+import Socket from './Socket';
+import RequestBody from '../shared/interfaces/RequestBody';
+
+class Request extends Message {
 
     private _socket: Socket;
 
-    constructor(id: string, event: string, body: IMessoBody, socket: Socket) {
+    constructor(id: string, event: string, body: RequestBody, socket: Socket) {
         super(id, event, body);
         this._socket = socket;
     }
@@ -28,7 +31,6 @@ class MessoRequest extends Message {
         })
     }
 
-
 }
 
-export default MessoRequest;
+export default Request;

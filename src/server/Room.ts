@@ -1,7 +1,9 @@
 import { EventEmitter } from 'events';
-import { Channel, Collection, Peer } from './';
+import Channel from './Channel';
+import Collection from './Collection';
+import Peer from './Peer';
 
-class MessoRoom extends EventEmitter {
+class Room extends EventEmitter {
 
     private _id: string;
     private _peerIds: string[];
@@ -55,4 +57,4 @@ class MessoRoom extends EventEmitter {
 
 }
 
-export default MessoRoom;
+export default Room;

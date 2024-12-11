@@ -1,6 +1,6 @@
-import MessoPeer from './MessoPeer';
+import MessoPeer from './Peer';
 
-class MessoCollection {
+class Collection {
 
     private _peers: MessoPeer[];
 
@@ -38,7 +38,7 @@ class MessoCollection {
         return this;
     }
 
-    remove(id: string | number): MessoCollection {
+    remove(id: string | number): Collection {
         const index = this._peers.findIndex((peer: MessoPeer) => peer.id === id.toString());
         if (index > -1) {
             this._peers.splice(index, 1);
@@ -60,8 +60,8 @@ class MessoCollection {
         return this._peers.some(fn);
     }
 
-    concat(...args: MessoCollection[]): this {
-        args.forEach((collection: MessoCollection) => {
+    concat(...args: Collection[]): this {
+        args.forEach((collection: Collection) => {
             this._peers.concat(collection.peers);
         })
         return this;
@@ -118,4 +118,4 @@ class MessoCollection {
 
 }
 
-export default MessoCollection;
+export default Collection;

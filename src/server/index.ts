@@ -1,14 +1,13 @@
-
-export { default as Channel } from './MessoChannel';
-export { default as Collection } from './MessoCollection';
-export { default as EventEmitter } from './MessoEventEmitter';
-export { default as Peer } from './MessoPeer';
-export { default as Request } from './MessoRequest';
-export { default as Ack } from '../shared/MessoAck';
-export { default as Room } from './MessoRoom';
-export { default as Server } from './MessoServer';
-export { default as Socket } from './MessoSocket';
-export { default as Message } from '../shared/MessoMessage';
-export { default as Response } from '../shared/MessoResponse';
+export { default as Channel } from './Channel';
+export { default as Collection } from './Collection';
+export { default as PeerEventEmitter } from './PeerEventEmitter';
+export { default as Peer } from './Peer';
+export { default as Request } from './Request';
+export { default as Ack } from '../shared/Ack';
+export { default as Room } from './Room';
+export { default as Server } from './Server';
+export { default as Socket } from './Socket';
+export { default as Message } from '../shared/Message';
+export { default as Response } from '../shared/Response';
 export * from './interfaces';
 export * from './types';

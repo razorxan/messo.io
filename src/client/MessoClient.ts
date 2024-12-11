@@ -1,7 +1,7 @@
-import MessoAck from "../shared/MessoAck";
-import MessoMessage from "../shared/MessoMessage";
-import MessoResponse from "../shared/MessoResponse";
-import { IMessoPromise, IMessoRequestOptions } from "../shared/interfaces";
+import MessoAck from "../shared/Ack";
+import MessoMessage from "../shared/Message";
+import MessoResponse from "../shared/Response";
+import { RequestPromise, RequestOptions } from "../shared/interfaces";
 import { EventEmitter, MessoClientOptions, MessoClientRequest, uuidv4 } from "./utils";
 
 
@@ -25,20 +25,25 @@ export class MessoClient extends EventEmitter {
             this.emit("connection");
         });
         this.ws.addEventListener("message", (e: MessageEvent) => {
-            const { type, id, event, data, error }: { type: string, id: string, event: string, data: any, error?: any } = JSON.parse(e.data);
-            switch (type) {
-                case 'response':
-                    this.handlResponse(id, event, data, error);
-                    break;
-                case 'request':
-                    this.handleRequest(id, event, data);
-                    break;
-                case 'message':
-                    this.handleMessage(id, event, data);
-                    break;
-                case 'ack':
-                    this.handleAck(id, event, data);
-                    break;
+            try {
+
+                const { type, id, event, data, error }: { type: string, id: string, event: string, data: any, error?: any } = JSON.parse(e.data);
+                switch (type) {
+                    case 'response':
+                        this.handlResponse(id, event, data, error);
+                        break;
+                    case 'request':
+                        this.handleRequest(id, event, data);
+                        break;
+                    case 'message':
+                        this.handleMessage(id, event, data);
+                        break;
+                    case 'ack':
+                        this.handleAck(id, event, data);
+                        break;
+                }
+            } catch (e) {
+                console.log(`Cannot parse message because ${e}`)
             }
         });
     }
@@ -71,8 +76,8 @@ export class MessoClient extends EventEmitter {
         this._promises.delete(id);
     }
 
-    private createSendPromise<T>(type: string, event: string, data: any, options?: IMessoRequestOptions): Promise<T> {
-        const promise: IMessoPromise = {
+    private createSendPromise<T>(type: string, event: string, data: any, options?: RequestOptions): Promise<T> {
+        const promise: RequestPromise = {
             reject: () => { },
             resolve: () => { },
         };
@@ -105,12 +110,16 @@ export class MessoClient extends EventEmitter {
         this.ws.send(JSON.stringify(data));
     }
 
-    public request(event: string, body?: any, options?: IMessoRequestOptions): Promise<MessoResponse> {
+    public request(event: string, body?: any, options?: RequestOptions): Promise<MessoResponse> {
         return this.createSendPromise<MessoResponse>('request', event, body, options);
     }
 
     public send(event: string, body?: any): Promise<MessoAck> {
         return this.createSendPromise<MessoAck>('message', event, body);
+    }
+
+    public disconnect() {
+        this.ws.close();
     }
 
 }

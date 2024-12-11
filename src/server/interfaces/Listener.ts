@@ -1,4 +1,4 @@
-import { EventHandler, ListenerType } from '../';
+import { EventHandler, ListenerType } from "../types";
 
 export default interface Listener {
     type: ListenerType;

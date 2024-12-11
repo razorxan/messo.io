@@ -1,12 +1,12 @@
-import IMessoBody from '../shared/interfaces/IMessoBody';
+import RequestBody from './interfaces/RequestBody';
 
-class MessoMessage {
+class Message {
 
     protected _id: string;
     protected _event: string;
     protected _body: any;
 
-    constructor(id: string, event: string, body: IMessoBody) {
+    constructor(id: string, event: string, body: RequestBody) {
         this._id = id;
         this._event = event;
         this._body = body;
@@ -29,4 +29,4 @@ class MessoMessage {
 
 }
 
-export default MessoMessage;
+export default Message;

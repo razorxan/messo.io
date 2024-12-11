@@ -1,33 +1,33 @@
 import http from 'http';
 import https from 'https';
 import { URL } from 'url';
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'events'
 import { Socket } from 'net';
-import {
-    Peer,
-    Channel,
-    AuthenticationMiddleware,
-    Ack,
-    Response,
-    IMessoServerOptions,
-} from './';
+import Peer from './Peer';
+import Channel from './Channel';
+import Ack from '../shared/Ack';
+import { AuthenticationMiddleware } from './types';
+import Response from '../shared/Response';
+import ServerOptions from './interfaces/ServerOptions';
 
-class MessoServer extends EventEmitter {
+
+class Server extends EventEmitter {
 
     private _channels: Map<string, Channel>;
     private _server: http.Server | https.Server;
     private _port: number;
     public readonly requestTimeout: number;
 
-    constructor(options: IMessoServerOptions) {
+    constructor(options: ServerOptions) {
         super();
         if (options.server) {
             this._server = options.server;
             const address = options.server.address();
             if (typeof address === 'object' && address !== null) {
                 this._port = address.port;
+            } else {
+                throw new Error("Cannot get listening port on provided server");
             }
-            throw new Error("Cannot get listeing port on provided server");
         } else {
             this._port = options.port || 3000;
             this._server = new http.Server();
@@ -95,4 +95,4 @@ class MessoServer extends EventEmitter {
 
 }
 
-export default MessoServer;
+export default Server;

@@ -1,8 +1,8 @@
-export { default as IMessoPromise } from '../../shared/interfaces/IMessoPromise';
-export { default as IMessoBody } from '../../shared/interfaces/IMessoBody';
-export { default as IMessoRequestOptions } from '../../shared/interfaces/IMessRequestOptions';
-export { default as IMessoListener } from './IMessoListener';
-export { default as IMessoMeta } from './IMessoMeta';
-export { default as IMessoPeerAuth } from './IMessoPeerAuth';
-export { default as IMessoServerOptions } from './IMessoServerOptions';
-export { default as IMessoChannelOptions } from './IMessoChannelOptions';
+export { default as RequestPromise } from '../../shared/interfaces/RequestPromise';
+export { default as MessoBody } from '../../shared/interfaces/RequestBody';
+export { default as RequestOptions } from '../../shared/interfaces/RequestOptions';
+export { default as Listener } from './Listener';
+export { default as Meta } from './Meta';
+export { default as PeerAuth } from './PeerAuth';
+export { default as ServerOptions } from './ServerOptions';
+export { default as ChannelOptions } from './ChannelOptions';

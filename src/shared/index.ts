@@ -1,3 +1,3 @@
-export { default as Ack } from './MessoAck';
-export { default as Message } from './MessoMessage';
-export { default as Response } from './MessoResponse';
+export { default as Ack } from './Ack';
+export { default as Message } from './Message';
+export { default as Response } from './Response';
